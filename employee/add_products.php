@@ -4,20 +4,22 @@ include '../config/conn.php';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Retrieve values from the form
     $product_name   = $_POST['product_name'];
-    $capacity       = $_POST['capacity']; // NEW FIELD
+    $brand_id       = !empty($_POST['brand_id']) ? $_POST['brand_id'] : NULL; // NEW FIELD - Brand (optional)
+    $capacity       = $_POST['capacity'];
     $buying_price   = $_POST['buying_price'];
     $selling_price  = $_POST['selling_price'];
     $quantity       = $_POST['quantity'];
     $category_id    = $_POST['category_id'];
 
-    // Prepare the INSERT statement
-    $stmt = $conn->prepare("INSERT INTO products (product_name, capacity, buying_price, selling_price, quantity, category_id) 
-                            VALUES (?, ?, ?, ?, ?, ?)");
+    // Prepare the INSERT statement with brand_id
+    $stmt = $conn->prepare("INSERT INTO products (product_name, brand_id, capacity, buying_price, selling_price, quantity, category_id) 
+                            VALUES (?, ?, ?, ?, ?, ?, ?)");
 
     // Bind parameters: 
-    // s = string, d = double, i = integer
-    $stmt->bind_param("ssddii", 
+    // s = string, i = integer, d = double
+    $stmt->bind_param("sisddii", 
         $product_name, 
+        $brand_id,
         $capacity, 
         $buying_price, 
         $selling_price, 
@@ -26,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     );
 
     if ($stmt->execute()) {
-        header("Location: inventory.php?success=1");
+        header("Location: product.php?success=1");
         exit;
     } else {
         echo "Error: " . $stmt->error;

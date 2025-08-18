@@ -48,6 +48,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </li>
 
+    <!-- Brand -->
+    <li class="nav-item <?= ($currentPage == 'brands.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../brands/brand.php">
+            <i class="fas fa-fw fa-industry"></i>
+            <span>Brands</span>
+        </a>
+    </li>
+
     <!-- Products -->
     <li class="nav-item <?= ($currentPage == 'product.php') ? 'active' : '' ?>">
         <a class="nav-link" href="../products/product.php">

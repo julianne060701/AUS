@@ -8,7 +8,7 @@ include '../config/conn.php';
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Inventory - Categories</title>
+    <title>Inventory - Products with Brands</title>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
@@ -40,12 +40,17 @@ include '../config/conn.php';
                     <!-- Page Heading -->
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h3 class="mb-0 text-gray-800">Product Inventory</h3>
-                        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
-                            <i class="fas fa-plus"></i> Add Product
-                        </button>
+                        <div>
+                            <!-- <button class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#manageBrandsModal">
+                                <i class="fas fa-tags"></i> Manage Brands
+                            </button> -->
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">
+                                <i class="fas fa-plus"></i> Add Product
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- Category Filter -->
+                    <!-- Filters Row -->
                     <div class="row mb-3">
                         <div class="col-md-3">
                             <label for="categoryFilter" class="form-label">Filter by Category:</label>
@@ -64,6 +69,31 @@ include '../config/conn.php';
                                 ?>
                             </select>
                         </div>
+                        <div class="col-md-3">
+                            <label for="brandFilter" class="form-label">Filter by Brand:</label>
+                            <select id="brandFilter" class="form-select">
+                                <option value="">All Brands</option>
+                                <?php
+                                $brandQuery = "SELECT DISTINCT b.brand_name 
+                                             FROM brands b 
+                                             INNER JOIN products p ON b.brand_id = p.brand_id 
+                                             ORDER BY b.brand_name";
+                                $brandResult = $conn->query($brandQuery);
+                                while ($brandRow = $brandResult->fetch_assoc()) {
+                                    echo "<option value='" . htmlspecialchars($brandRow['brand_name']) . "'>" 
+                                         . htmlspecialchars($brandRow['brand_name']) . "</option>";
+                                }
+                                ?>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button class="btn btn-outline-secondary clear-filter">
+                                    <i class="fas fa-times"></i> Clear Filters
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- DataTable -->
@@ -74,26 +104,38 @@ include '../config/conn.php';
                                     <thead>
                                         <tr>
                                             <th>Product Name</th>
+                                            <th>Brand</th>
                                             <th>Capacity</th>
                                             <th>Selling Price</th>
                                             <th>Category</th>
+                                            <th>Stock</th>
                                             <th>Action</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                     <?php
-                                    $sql = "SELECT p.*, c.category_name 
+                                    $sql = "SELECT p.*, c.category_name, b.brand_name 
                                             FROM products p 
                                             LEFT JOIN category c ON p.category_id = c.category_id 
-                                            ORDER BY c.category_name, p.product_name";
+                                            LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                            ORDER BY c.category_name, b.brand_name, p.product_name";
                                     $result = $conn->query($sql);
 
                                     while ($row = $result->fetch_assoc()) {
+                                        $stockClass = '';
+                                        if ($row['quantity'] <= 5) {
+                                            $stockClass = 'text-danger font-weight-bold';
+                                        } elseif ($row['quantity'] <= 10) {
+                                            $stockClass = 'text-warning font-weight-bold';
+                                        }
+                                        
                                         echo "<tr>
                                                 <td>" . htmlspecialchars($row['product_name']) . "</td>
+                                                <td><span class='badge badge-secondary'>" . htmlspecialchars($row['brand_name'] ?: 'No Brand') . "</span></td>
                                                 <td>" . htmlspecialchars($row['capacity']) . "</td>
                                                 <td>₱" . number_format($row['selling_price'], 2) . "</td>
                                                 <td>" . htmlspecialchars($row['category_name']) . "</td>
+                                                <td class='" . $stockClass . "'>" . $row['quantity'] . "</td>
                                                 <td>
                                                     <button class='btn btn-sm btn-warning edit-btn' 
                                                             data-id='" . $row['id'] . "'
@@ -103,6 +145,7 @@ include '../config/conn.php';
                                                             data-selling-price='" . $row['selling_price'] . "'
                                                             data-quantity='" . $row['quantity'] . "'
                                                             data-category-id='" . $row['category_id'] . "'
+                                                            data-brand-id='" . $row['brand_id'] . "'
                                                             data-bs-toggle='modal' 
                                                             data-bs-target='#editProductModal'>
                                                         <i class='fas fa-edit'></i>
@@ -140,6 +183,73 @@ include '../config/conn.php';
     </div>
     <!-- End of Page Wrapper -->
 
+    <!-- Manage Brands Modal -->
+    <div class="modal fade" id="manageBrandsModal" tabindex="-1" aria-labelledby="manageBrandsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="manageBrandsModalLabel">Manage Brands</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Add Brand Form -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="m-0">Add New Brand</h6>
+                        </div>
+                        <div class="card-body">
+                            <form id="addBrandForm">
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <input type="text" id="new_brand_name" class="form-control" placeholder="Brand Name" required>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fas fa-plus"></i> Add Brand
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Existing Brands -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="m-0">Existing Brands</h6>
+                        </div>
+                        <div class="card-body">
+                            <div id="brandsList">
+                                <?php
+                                $brandsQuery = "SELECT b.*, COUNT(p.id) as product_count 
+                                              FROM brands b 
+                                              LEFT JOIN products p ON b.brand_id = p.brand_id 
+                                              GROUP BY b.brand_id 
+                                              ORDER BY b.brand_name";
+                                $brandsResult = $conn->query($brandsQuery);
+                                while ($brand = $brandsResult->fetch_assoc()) {
+                                    echo "<div class='d-flex justify-content-between align-items-center border-bottom py-2'>
+                                            <div>
+                                                <strong>" . htmlspecialchars($brand['brand_name']) . "</strong>
+                                                <small class='text-muted'>(" . $brand['product_count'] . " products)</small>
+                                            </div>
+                                            <div>";
+                                    if ($brand['product_count'] == 0) {
+                                        echo "<button class='btn btn-sm btn-danger delete-brand-btn' data-id='" . $brand['brand_id'] . "' data-name='" . htmlspecialchars($brand['brand_name']) . "'>
+                                                <i class='fas fa-trash'></i>
+                                              </button>";
+                                    }
+                                    echo "  </div>
+                                          </div>";
+                                }
+                                ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Add Product Modal -->
     <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
@@ -153,6 +263,18 @@ include '../config/conn.php';
             <div class="mb-3">
               <label class="form-label">Product Name</label>
               <input type="text" name="product_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Brand</label>
+              <select name="brand_id" class="form-select">
+                <option value="">-- Select Brand (Optional) --</option>
+                <?php
+                $brandRes = $conn->query("SELECT * FROM brands ORDER BY brand_name");
+                while ($brand = $brandRes->fetch_assoc()) {
+                    echo "<option value='" . $brand['brand_id'] . "'>" . htmlspecialchars($brand['brand_name']) . "</option>";
+                }
+                ?>
+              </select>
             </div>
             <div class="mb-3">
               <label class="form-label">Capacity</label>
@@ -190,8 +312,9 @@ include '../config/conn.php';
         </form>
       </div>
     </div>
- <!-- Edit Product Modal -->
- <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
+
+    <!-- Edit Product Modal -->
+    <div class="modal fade" id="editProductModal" tabindex="-1" aria-labelledby="editProductModalLabel" aria-hidden="true">
       <div class="modal-dialog">
         <form action="edit_product_process.php" method="POST" class="modal-content">
           <div class="modal-header">
@@ -203,6 +326,18 @@ include '../config/conn.php';
             <div class="mb-3">
               <label class="form-label">Product Name</label>
               <input type="text" id="edit_product_name" name="product_name" class="form-control" required>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Brand</label>
+              <select id="edit_brand_id" name="brand_id" class="form-select">
+                <option value="">-- Select Brand (Optional) --</option>
+                <?php
+                $brandRes = $conn->query("SELECT * FROM brands ORDER BY brand_name");
+                while ($brand = $brandRes->fetch_assoc()) {
+                    echo "<option value='" . $brand['brand_id'] . "'>" . htmlspecialchars($brand['brand_name']) . "</option>";
+                }
+                ?>
+              </select>
             </div>
             <div class="mb-3">
               <label class="form-label">Capacity</label>
@@ -278,16 +413,10 @@ include '../config/conn.php';
             "ordering": true,
             "searching": true,
             "responsive": true,
-            "order": [[3, 'asc'], [0, 'asc']], // Sort by category first, then product name
+            "order": [[4, 'asc'], [1, 'asc'], [0, 'asc']], // Sort by category, then brand, then product name
             "columnDefs": [
                 { "orderable": false, "targets": -1 }
-            ],
-            "rowGroup": {
-                "dataSrc": 3, // Group by category column (index 3)
-                "startRender": function (rows, group) {
-                    return $('<tr class="table-primary group-header"><td colspan="5"><strong>' + group.toUpperCase() + '</strong></td></tr>');
-                }
-            }
+            ]
         });
 
         // Category filter functionality
@@ -295,56 +424,112 @@ include '../config/conn.php';
             var selectedCategory = $(this).val();
             
             if (selectedCategory === '') {
-                // Show all categories
-                table.column(3).search('').draw();
+                table.column(4).search('').draw();
             } else {
-                // Filter by selected category
-                table.column(3).search('^' + selectedCategory + '$', true, false).draw();
+                table.column(4).search('^' + selectedCategory + '$', true, false).draw();
             }
         });
 
-        // Optional: Add clear filter button functionality
-        $(document).on('click', '.clear-filter', function() {
-            $('#categoryFilter').val('');
-            table.column(3).search('').draw();
+        // Brand filter functionality
+        $('#brandFilter').on('change', function() {
+            var selectedBrand = $(this).val();
+            
+            if (selectedBrand === '') {
+                table.column(1).search('').draw();
+            } else {
+                table.column(1).search(selectedBrand, true, false).draw();
+            }
         });
 
-         // Edit button click handler
-    $(document).on('click', '.edit-btn', function() {
-        var id = $(this).data('id');
-        var name = $(this).data('name');
-        var capacity = $(this).data('capacity');
-        var buyingPrice = $(this).data('buying-price');
-        var sellingPrice = $(this).data('selling-price');
-        var quantity = $(this).data('quantity');
-        var categoryId = $(this).data('category-id');
-        
-        // Populate edit modal fields
-        $('#edit_product_id').val(id);
-        $('#edit_product_name').val(name);
-        $('#edit_capacity').val(capacity);
-        $('#edit_buying_price').val(buyingPrice);
-        $('#edit_selling_price').val(sellingPrice);
-        $('#edit_quantity').val(quantity);
-        $('#edit_category_id').val(categoryId);
-    });
+        // Clear filters functionality
+        $(document).on('click', '.clear-filter', function() {
+            $('#categoryFilter').val('');
+            $('#brandFilter').val('');
+            table.columns().search('').draw();
+        });
 
-    // Delete button click handler
-    $(document).on('click', '.delete-btn', function() {
-        var id = $(this).data('id');
-        var name = $(this).data('name');
-        
-        // Populate delete modal fields
-        $('#delete_product_id').val(id);
-        $('#delete_product_name').text(name);
-    });
+        // Edit button click handler
+        $(document).on('click', '.edit-btn', function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            var capacity = $(this).data('capacity');
+            var buyingPrice = $(this).data('buying-price');
+            var sellingPrice = $(this).data('selling-price');
+            var quantity = $(this).data('quantity');
+            var categoryId = $(this).data('category-id');
+            var brandId = $(this).data('brand-id');
+            
+            // Populate edit modal fields
+            $('#edit_product_id').val(id);
+            $('#edit_product_name').val(name);
+            $('#edit_capacity').val(capacity);
+            $('#edit_buying_price').val(buyingPrice);
+            $('#edit_selling_price').val(sellingPrice);
+            $('#edit_quantity').val(quantity);
+            $('#edit_category_id').val(categoryId);
+            $('#edit_brand_id').val(brandId || '');
+        });
 
-    // Optional: Add clear filter button functionality
-    $(document).on('click', '.clear-filter', function() {
-        $('#categoryFilter').val('');
-        table.column(3).search('').draw();
-    });
+        // Delete button click handler
+        $(document).on('click', '.delete-btn', function() {
+            var id = $(this).data('id');
+            var name = $(this).data('name');
+            
+            // Populate delete modal fields
+            $('#delete_product_id').val(id);
+            $('#delete_product_name').text(name);
+        });
 
+        // Add brand form handler
+        $('#addBrandForm').on('submit', function(e) {
+            e.preventDefault();
+            var brandName = $('#new_brand_name').val().trim();
+            
+            if (brandName) {
+                $.ajax({
+                    url: 'add_brand.php',
+                    type: 'POST',
+                    data: { brand_name: brandName },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            $('#new_brand_name').val('');
+                            location.reload(); // Reload to update the brands list
+                        } else {
+                            alert('Error: ' + (response.message || 'Failed to add brand'));
+                        }
+                    },
+                    error: function() {
+                        alert('Error: Failed to add brand');
+                    }
+                });
+            }
+        });
+
+        // Delete brand handler
+        $(document).on('click', '.delete-brand-btn', function() {
+            var brandId = $(this).data('id');
+            var brandName = $(this).data('name');
+            
+            if (confirm('Are you sure you want to delete the brand "' + brandName + '"?')) {
+                $.ajax({
+                    url: 'delete_brand.php',
+                    type: 'POST',
+                    data: { brand_id: brandId },
+                    dataType: 'json',
+                    success: function(response) {
+                        if (response.success) {
+                            location.reload(); // Reload to update the brands list
+                        } else {
+                            alert('Error: ' + (response.message || 'Failed to delete brand'));
+                        }
+                    },
+                    error: function() {
+                        alert('Error: Failed to delete brand');
+                    }
+                });
+            }
+        });
     });
     </script>
 
@@ -356,6 +541,22 @@ include '../config/conn.php';
     
     .group-header td {
         padding: 12px 8px;
+    }
+
+    .badge {
+        font-size: 0.75em;
+    }
+
+    .text-danger {
+        color: #dc3545 !important;
+    }
+
+    .text-warning {
+        color: #ffc107 !important;
+    }
+
+    .font-weight-bold {
+        font-weight: bold !important;
     }
     </style>
 
