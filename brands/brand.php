@@ -46,13 +46,13 @@ include '../config/conn.php';
                                     <?php
                                     $query = "SELECT * FROM brands ORDER BY brand_id DESC";
                                     $result = $conn->query($query);
-                                    $brands_data = []; // Store data for modals
+                                    $brands_data = []; 
 
                                     if ($result && $result->num_rows > 0) {
                                         while ($row = $result->fetch_assoc()) {
                                             $brand_id = $row['brand_id'];
                                             $brand_name = htmlspecialchars($row['brand_name']);
-                                            $brands_data[] = $row; // Store for later use
+                                            $brands_data[] = $row; 
                                             
                                             echo "<tr>";
                                             echo "<td>" . $brand_id . "</td>";

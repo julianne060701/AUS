@@ -1,5 +1,5 @@
 <?php
-include '../config/conn.php'; // database connection
+include '../config/conn.php'; 
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $brand_id = intval($_POST['brand_id']);
@@ -13,14 +13,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $result = $check_stmt->get_result();
         
         if ($result->num_rows == 0) {
-            // Brand doesn't exist
+         // Brand doesn't exist
             $check_stmt->close();
             header("Location: brand.php?error=notfound");
             exit;
         }
         $check_stmt->close();
 
-        // Check if brand name already exists (excluding current brand)
+        // Check if brand name already exists 
         $duplicate_stmt = $conn->prepare("SELECT brand_id FROM brands WHERE brand_name = ? AND brand_id != ?");
         $duplicate_stmt->bind_param("si", $brand_name, $brand_id);
         $duplicate_stmt->execute();
@@ -39,14 +39,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $stmt->bind_param("si", $brand_name, $brand_id);
 
         if ($stmt->execute()) {
-            // Check if any rows were actually affected
+          
             if ($stmt->affected_rows > 0) {
-                // Success → redirect back to brands page
+                
                 $stmt->close();
                 header("Location: brand.php?updated=1");
                 exit;
             } else {
-                // No changes made (same data)
+               
                 $stmt->close();
                 header("Location: brand.php?error=nochange");
                 exit;
@@ -67,7 +67,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         exit;
     }
 } else {
-    // Not a POST request - redirect to brands page
+   
     header("Location: brand.php");
     exit;
 }
