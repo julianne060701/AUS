@@ -15,12 +15,8 @@ $error_message = '';
 $aircon_sql = "SELECT p.*, c.category_name 
                FROM products p 
                LEFT JOIN category c ON p.category_id = c.category_id 
-               WHERE (LOWER(c.category_name) LIKE '%aircon%' 
-                  OR LOWER(c.category_name) LIKE '%air conditioner%'
-                  OR LOWER(c.category_name) LIKE '%ac%'
-                  OR c.category_id IN (1, 2, 3))  -- Add your specific category IDs here
-               AND p.quantity > 0
                ORDER BY p.product_name";
+
 
 $aircon_result = $conn->query($aircon_sql);
 
@@ -248,7 +244,8 @@ $sales_result = $conn->query($sales_query);
 
             </div>
             <!-- End of Main Content -->
-
+            </div>
+            </div>
             <!-- Footer -->
             <?php include('includes/footer.php'); ?>
             <!-- End of Footer -->

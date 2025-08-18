@@ -1,7 +1,6 @@
 <?php
-session_start();  // Start session before any output
+session_start(); 
 
-// Redirect if not logged in as admin
 // Option 1: If you chose to use 'user_id' (recommended)
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php");
@@ -81,12 +80,8 @@ $stats['total_value'] = $row['total_value'] ?? 0;
 
 // ===== HIGHEST SELLING PRODUCTS =====
 $highest_selling = [];
-$sql = "SELECT 
-            a.aircon_model,
-            p.capacity,
-            c.category_name,
-            SUM(a.quantity_sold) AS total_sold 
-        FROM aircon_sales a
+$sql = "SELECT a.aircon_model, p.capacity, c.category_name,
+            SUM(a.quantity_sold) AS total_sold FROM aircon_sales a
         LEFT JOIN products p ON a.aircon_model = p.product_name
         LEFT JOIN category c ON p.category_id = c.category_id
         GROUP BY a.aircon_model, p.capacity, c.category_name
