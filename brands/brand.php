@@ -1,11 +1,18 @@
 <?php
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 include '../config/conn.php';
 ?>
 
-<?php include('../includes/header.php'); ?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Brands</title>
+    <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
+    <link href="../css/sb-admin-2.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css" rel="stylesheet">
+</head>
 
 <body id="page-top">
 <div id="wrapper">
@@ -54,8 +61,11 @@ include '../config/conn.php';
                                             echo "<button class='btn btn-sm btn-info mr-1' data-toggle='modal' data-target='#viewModal_" . $brand_id . "' title='View'>";
                                             echo "<i class='fas fa-eye'></i>";
                                             echo "</button>";
-                                            echo "<button class='btn btn-sm btn-primary' data-toggle='modal' data-target='#editModal_" . $brand_id . "' title='Edit'>";
+                                            echo "<button class='btn btn-sm btn-primary mr-1' data-toggle='modal' data-target='#editModal_" . $brand_id . "' title='Edit'>";
                                             echo "<i class='fas fa-edit'></i>";
+                                            echo "</button>";
+                                            echo "<button class='btn btn-sm btn-danger' onclick='deleteBrand(" . $brand_id . ")' title='Delete'>";
+                                            echo "<i class='fas fa-trash'></i>";
                                             echo "</button>";
                                             echo "</td>";
                                             echo "</tr>";
@@ -71,12 +81,12 @@ include '../config/conn.php';
                 </div>
 
                 <!-- Add Brand Modal -->
-                <div class="modal fade" id="addBrandModal" tabindex="-1" role="dialog">
+                <div class="modal fade" id="addBrandModal" tabindex="-1" role="dialog" aria-labelledby="addBrandModalLabel" aria-hidden="true">
                     <div class="modal-dialog" role="document">
                         <form action="add_brand.php" method="POST">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Add Brand</h5>
+                                    <h5 class="modal-title" id="addBrandModalLabel">Add Brand</h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                         <span aria-hidden="true">&times;</span>
                                     </button>
@@ -103,11 +113,11 @@ include '../config/conn.php';
                     $brand_name = htmlspecialchars($brand['brand_name']);
                 ?>
                     <!-- View Modal for Brand <?php echo $brand_id; ?> -->
-                    <div class="modal fade" id="viewModal_<?php echo $brand_id; ?>" tabindex="-1" role="dialog">
+                    <div class="modal fade" id="viewModal_<?php echo $brand_id; ?>" tabindex="-1" role="dialog" aria-labelledby="viewModalLabel_<?php echo $brand_id; ?>" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h5 class="modal-title">Brand Details</h5>
+                                    <h5 class="modal-title" id="viewModalLabel_<?php echo $brand_id; ?>">Brand Details</h5>
                                     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                         <span aria-hidden="true">&times;</span>
                                     </button>
@@ -124,12 +134,12 @@ include '../config/conn.php';
                     </div>
 
                     <!-- Edit Modal for Brand <?php echo $brand_id; ?> -->
-                    <div class="modal fade" id="editModal_<?php echo $brand_id; ?>" tabindex="-1" role="dialog">
+                    <div class="modal fade" id="editModal_<?php echo $brand_id; ?>" tabindex="-1" role="dialog" aria-labelledby="editModalLabel_<?php echo $brand_id; ?>" aria-hidden="true">
                         <div class="modal-dialog" role="document">
                             <form action="update_brand.php" method="POST">
                                 <div class="modal-content">
                                     <div class="modal-header">
-                                        <h5 class="modal-title">Edit Brand</h5>
+                                        <h5 class="modal-title" id="editModalLabel_<?php echo $brand_id; ?>">Edit Brand</h5>
                                         <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                                             <span aria-hidden="true">&times;</span>
                                         </button>
@@ -151,30 +161,18 @@ include '../config/conn.php';
                     </div>
                 <?php
                 }
-                $conn->close();
                 ?>
 
-            </div>
-        </div>
+            </div> <!-- container-fluid -->
+        </div> <!-- content -->
+
         <?php include('../includes/footer.php'); ?>
     </div>
 </div>
 
-<!-- Load jQuery first (from CDN to ensure it's available) -->
+<!-- Include jQuery first, then Bootstrap, then DataTables -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Bootstrap Bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
-<!-- SB Admin 2 (if available locally, otherwise skip) -->
-<script>
-// Only load if file exists, otherwise skip
-try {
-    document.write('<script src="../js/sb-admin-2.min.js"><\/script>');
-} catch(e) {
-    console.log('SB Admin 2 JS not found, continuing without it');
-}
-</script>
-
-<!-- DataTables JavaScript -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap4.min.js"></script>
 
@@ -182,14 +180,6 @@ try {
 $(document).ready(function() {
     console.log('jQuery version:', $.fn.jquery);
     console.log('Table element found:', $('#dataTable').length > 0);
-    console.log('Table HTML structure:');
-    console.log($('#dataTable')[0]);
-    
-    // Count columns in header vs body
-    var headerCols = $('#dataTable thead tr:first th').length;
-    var bodyCols = $('#dataTable tbody tr:first td').length;
-    console.log('Header columns:', headerCols);
-    console.log('Body columns:', bodyCols);
     
     // Initialize DataTable with error handling
     try {
@@ -200,14 +190,30 @@ $(document).ready(function() {
                 { "orderable": false, "targets": 2 }
             ],
             "responsive": true,
-            "destroy": true // Allow reinitialization
+            "language": {
+                "emptyTable": "No brand records found.",
+                "zeroRecords": "No matching records found"
+            }
         });
         console.log('DataTable initialized successfully');
     } catch (error) {
         console.error('DataTable initialization error:', error);
     }
 });
+
+// Function to handle brand deletion
+function deleteBrand(brandId) {
+    if (confirm('Are you sure you want to delete this brand?')) {
+        window.location.href = 'delete_brand.php?id=' + brandId;
+    }
+}
+
+// Clear form when add modal is closed
+$('#addBrandModal').on('hidden.bs.modal', function () {
+    $(this).find('form')[0].reset();
+});
 </script>
 
+<?php $conn->close(); ?>
 </body>
 </html>
