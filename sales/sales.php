@@ -218,9 +218,7 @@ $sales_result = $conn->query($sales_query);
                                                         <button class="btn btn-sm btn-outline-primary" onclick="viewSale(<?php echo $row['sale_id']; ?>)" title="View Details">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
-                                                        <button class="btn btn-sm btn-outline-success" onclick="printReceipt(<?php echo $row['sale_id']; ?>)" title="Print Receipt">
-                                                            <i class="fas fa-print"></i>
-                                                        </button>
+                                                        
                                                     </td>
                                                 </tr>
                                             <?php endwhile; ?>
