@@ -493,7 +493,7 @@ body::before {
     
     <div class="logo-section">
         <div class="logo"></div>
-        <img src="img/logo.jpg" alt="Reyze Bigasan Logo" style="width: 40px; height: 40px;">
+        <img src="img/logo.jpg" alt="AUS Logo" style="width: 40px; height: 40px;">
         <h1 class="title">Login</h1>
         <p class="subtitle">AUS Inventory System</p>
     </div>
