@@ -57,7 +57,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Directing to dashboard</title>
+<title>AUS Inventory Management</title>
 <style>
 * {
     margin: 0;
@@ -127,7 +127,7 @@ body::before {
     margin-bottom: 40px;
 }
 
-.logo {
+/* .logo {
     width: 80px;
     height: 80px;
     margin: 0 auto 20px;
@@ -140,14 +140,14 @@ body::before {
     position: relative;
     box-shadow: 0 10px 30px rgba(0, 188, 212, 0.3);
     animation: pulse 2s ease-in-out infinite;
-}
+} */
 
-.logo::before {
+/* .logo::before {
     content: '❄️';
     position: absolute;
-}
+} */
 
-.logo::after {
+/* .logo::after {
     content: '';
     position: absolute;
     width: 100%;
@@ -155,7 +155,7 @@ body::before {
     border: 3px solid rgba(0, 188, 212, 0.3);
     border-radius: 50%;
     animation: ripple 2s ease-out infinite;
-}
+} */
 
 @keyframes pulse {
     0%, 100% { transform: scale(1); }
@@ -493,6 +493,7 @@ body::before {
     
     <div class="logo-section">
         <div class="logo"></div>
+        <img src="img/logo.jpg" alt="Reyze Bigasan Logo" style="width: 40px; height: 40px;">
         <h1 class="title">Login</h1>
         <p class="subtitle">AUS Inventory System</p>
     </div>
