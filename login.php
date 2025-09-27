@@ -590,8 +590,8 @@ function showWelcomeAnimation() {
         <?php if ($login_success): ?>
             <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
                 window.location.href = 'dashboard/index.php';
-            <?php elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'technician'): ?>
-                window.location.href = 'technician/index.php';
+            <?php elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'employee'): ?>
+                window.location.href = 'employee/index.php';
             <?php endif; ?>
         <?php endif; ?>
     }, 3500); // 3.5 seconds to show the full animation
