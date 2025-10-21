@@ -28,18 +28,74 @@ if (!$aircon_result) {
 
 // Handle form submission
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    // Debug: Log all POST data
+    error_log("=== FORM SUBMISSION DEBUG ===");
+    error_log("POST Data: " . print_r($_POST, true));
+    
     $product_id = $_POST['product_id'];
     $quantity_input = (int)$_POST['quantity']; // Quantity of products sold
-    $payment_method = $_POST['payment_method']; // 'cash' or 'installment'
+    // Get payment method with fallback
+    $payment_method = 'cash'; // Default to cash
+    if (isset($_POST['payment_method']) && !empty($_POST['payment_method'])) {
+        $payment_method = $_POST['payment_method'];
+    } else {
+        // If payment_method is not set, check if installment data exists
+        if (isset($_POST['installment_period']) && !empty($_POST['installment_period'])) {
+            $payment_method = 'installment';
+        }
+    }
     $selling_price = (float)$_POST['selling_price'];
     $cashier = $_POST['cashier_name'];
     $date_of_sale = date("Y-m-d H:i:s");
+    
+    // Debug: Check if payment_method is being received
+    if (!isset($_POST['payment_method'])) {
+        error_log("WARNING: payment_method not found in POST data!");
+        error_log("Available POST keys: " . implode(', ', array_keys($_POST)));
+    } else {
+        error_log("Payment method received: " . $_POST['payment_method']);
+    }
+    
+    // Debug: Show final payment method determination
+    error_log("Final payment method determined: " . $payment_method);
+    error_log("Installment period: " . (isset($_POST['installment_period']) ? $_POST['installment_period'] : 'not set'));
+    
+    // Get installment details if applicable
+    $installment_period = isset($_POST['installment_period']) ? (int)$_POST['installment_period'] : 0;
+    $interest_rate = 0;
+    
+    // Debug: Log the values
+    error_log("Payment Method: " . $payment_method);
+    error_log("Installment Period: " . $installment_period);
+    error_log("Installment Period Raw: " . ($_POST['installment_period'] ?? 'NOT SET'));
+    if ($payment_method === 'installment' && $installment_period > 0) {
+        // Set interest rate based on installment period
+        switch($installment_period) {
+            case 6:
+                $interest_rate = 3;
+                break;
+            case 12:
+                $interest_rate = 5;
+                break;
+            case 24:
+                $interest_rate = 7;
+                break;
+        }
+    }
     
     // Calculate discount and final amounts
     $subtotal = $selling_price * $quantity_input;
     $discount_percentage = ($payment_method === 'cash') ? 10 : 0;
     $discount_amount = $subtotal * ($discount_percentage / 100);
+    
+    if ($payment_method === 'installment' && $installment_period > 0) {
+        // Calculate installment with interest
+        $interest_amount = $subtotal * ($interest_rate / 100);
+        $total_amount = $subtotal + $interest_amount;
+    } else {
+        // Cash payment with discount
     $total_amount = $subtotal - $discount_amount;
+    }
 
     // Step 1: Get current stock and product details from DB
     $stmt_fetch = $conn->prepare("SELECT product_name, quantity FROM products WHERE id = ?");
@@ -58,10 +114,41 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Begin transaction
         $conn->begin_transaction();
         try {
-            // Step 2: Insert into sales table - FIXED TO MATCH YOUR TABLE STRUCTURE
-            $insert_sale = $conn->prepare("INSERT INTO aircon_sales (aircon_model, quantity_sold, selling_price, total_amount, date_of_sale, cashier) VALUES (?, ?, ?, ?, ?, ?)");
-            $insert_sale->bind_param("sidiss", $product_name, $quantity_input, $selling_price, $total_amount, $date_of_sale, $cashier);
-            $insert_sale->execute();
+            // Debug: Log the data being inserted
+            error_log("Payment Method: " . $payment_method);
+            error_log("Installment Period: " . $installment_period);
+            error_log("Interest Rate: " . $interest_rate);
+            error_log("Interest Amount: " . $interest_amount);
+            
+            // Step 2: Insert into sales table with installment data
+            $insert_sale = $conn->prepare("INSERT INTO aircon_sales (aircon_model, quantity_sold, selling_price, total_amount, date_of_sale, cashier, payment_method, installment_period, interest_rate, interest_amount, monthly_payment, original_price) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            
+            // Prepare installment data
+            $payment_method_db = $payment_method;
+            $installment_period_db = ($payment_method === 'installment' && $installment_period > 0) ? $installment_period : null;
+            $interest_rate_db = ($payment_method === 'installment' && $installment_period > 0) ? $interest_rate : null;
+            $interest_amount_db = ($payment_method === 'installment' && $installment_period > 0) ? $interest_amount : null;
+            $monthly_payment_db = ($payment_method === 'installment' && $installment_period > 0) ? ($total_amount / $installment_period) : null;
+            $original_price_db = $subtotal;
+            
+            // Debug: Log the prepared data
+            error_log("Prepared Data - Payment Method: " . $payment_method_db);
+            error_log("Prepared Data - Installment Period: " . ($installment_period_db ?? 'NULL'));
+            error_log("Prepared Data - Interest Rate: " . ($interest_rate_db ?? 'NULL'));
+            error_log("Prepared Data - Interest Amount: " . ($interest_amount_db ?? 'NULL'));
+            error_log("Prepared Data - Monthly Payment: " . ($monthly_payment_db ?? 'NULL'));
+            error_log("Prepared Data - Original Price: " . $original_price_db);
+            
+            $insert_sale->bind_param("sidissisiddd", $product_name, $quantity_input, $selling_price, $total_amount, $date_of_sale, $cashier, $payment_method_db, $installment_period_db, $interest_rate_db, $interest_amount_db, $monthly_payment_db, $original_price_db);
+            
+            if ($insert_sale->execute()) {
+                $sale_id = $conn->insert_id;
+                error_log("Sale inserted successfully with ID: " . $sale_id);
+                error_log("Payment method saved to database: " . $payment_method_db);
+            } else {
+                error_log("Error inserting sale: " . $insert_sale->error);
+                throw new Exception("Failed to insert sale: " . $insert_sale->error);
+            }
 
             // Step 3: Update inventory
             $new_stock = $current_stock - $quantity_input;
@@ -73,8 +160,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $update_inventory->execute();
 
             $conn->commit();
-            $discount_text = ($payment_method === 'cash') ? " with 10% cash discount (₱" . number_format($discount_amount, 2) . " saved)" : "";
-            $success_message = "Sale recorded successfully! Sold: {$quantity_input} unit(s) of {$product_name}{$discount_text}. Total: ₱" . number_format($total_amount, 2);
+            
+            // Create success message based on payment method
+            if ($payment_method === 'cash') {
+                $success_message = "Sale recorded successfully! Sold: {$quantity_input} unit(s) of {$product_name} with 10% cash discount (₱" . number_format($discount_amount, 2) . " saved). Total: ₱" . number_format($total_amount, 2);
+            } else if ($payment_method === 'installment' && $installment_period > 0) {
+                $interest_amount = $subtotal * ($interest_rate / 100);
+                $monthly_payment = $total_amount / $installment_period;
+                $success_message = "Installment sale recorded successfully! Sold: {$quantity_input} unit(s) of {$product_name} for {$installment_period} months at {$interest_rate}% interest. Monthly payment: ₱" . number_format($monthly_payment, 2) . ", Total: ₱" . number_format($total_amount, 2);
+            } else {
+                $success_message = "Sale recorded successfully! Sold: {$quantity_input} unit(s) of {$product_name}. Total: ₱" . number_format($total_amount, 2);
+            }
             
             // Instead of meta refresh, we'll use JavaScript redirect after SweetAlert
             // echo "<meta http-equiv='refresh' content='3'>";
@@ -187,6 +283,7 @@ $sales_result = $conn->query($sales_query);
                                             <th>Product Model</th>
                                             <th>Quantity</th>
                                             <th>Unit Price</th>
+                                            <th>Payment Method</th>
                                             <th>Total</th>
                                             <th>Cashier</th>
                                             <th>Date</th>
@@ -204,6 +301,25 @@ $sales_result = $conn->query($sales_query);
                                                     </td>
                                                     <td><span class="badge badge-info"><?php echo $row['quantity_sold']; ?></span></td>
                                                     <td>₱<?php echo number_format($row['selling_price'], 2); ?></td>
+                                                    <td>
+                                                        <?php 
+                                                        $payment_method = isset($row['payment_method']) ? $row['payment_method'] : 'cash';
+                                                        if ($payment_method === 'installment' && isset($row['installment_period'])) {
+                                                            echo '<span class="badge badge-warning">';
+                                                            echo '<i class="fas fa-credit-card mr-1"></i>';
+                                                            echo $row['installment_period'] . ' months';
+                                                            if (isset($row['interest_rate'])) {
+                                                                echo ' (' . $row['interest_rate'] . '%)';
+                                                            }
+                                                            echo '</span>';
+                                                        } else {
+                                                            echo '<span class="badge badge-success">';
+                                                            echo '<i class="fas fa-money-bill-wave mr-1"></i>';
+                                                            echo 'Cash';
+                                                            echo '</span>';
+                                                        }
+                                                        ?>
+                                                    </td>
                                                     <td><strong>₱<?php echo number_format($row['total_amount'], 2); ?></strong></td>
                                                     <td>
                                                         <i class="fas fa-user-circle text-primary mr-1"></i>
@@ -224,7 +340,7 @@ $sales_result = $conn->query($sales_query);
                                             <?php endwhile; ?>
                                         <?php else: ?>
                                             <tr>
-                                                <td colspan="8" class="text-center py-4">
+                                                <td colspan="9" class="text-center py-4">
                                                     <i class="fas fa-inbox fa-2x text-muted mb-2"></i>
                                                     <p class="text-muted mb-0">No sales records found.</p>
                                                 </td>
@@ -347,7 +463,55 @@ $sales_result = $conn->query($sales_query);
                                             <label for="installment" class="mb-0 d-block cursor-pointer">
                                                 <i class="fas fa-credit-card fa-2x text-warning mb-2"></i>
                                                 <h6 class="text-warning">Installment</h6>
-                                                <small class="text-muted">Full Price</small>
+                                                <small class="text-muted">With Interest</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Installment Period Selection (Hidden by default) -->
+                        <div class="col-md-12 mb-3" id="installmentOptions" style="display: none;">
+                            <label class="form-label">
+                                <i class="fas fa-calendar-alt mr-1"></i>Installment Period
+                            </label>
+                            <div class="row">
+                                <div class="col-4">
+                                    <div class="card border-info installment-option" data-period="6" data-rate="3">
+                                        <div class="card-body text-center">
+                                            <input type="radio" name="installment_period" value="6" id="installment_6">
+                                            <label for="installment_6" class="mb-0 d-block cursor-pointer">
+                                                <i class="fas fa-calendar fa-2x text-info mb-2"></i>
+                                                <h6 class="text-info">6 Months</h6>
+                                                <div class="badge badge-info mb-1">3% Interest</div>
+                                                <small class="text-muted d-block">Lowest Rate</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card border-warning installment-option" data-period="12" data-rate="5">
+                                        <div class="card-body text-center">
+                                            <input type="radio" name="installment_period" value="12" id="installment_12">
+                                            <label for="installment_12" class="mb-0 d-block cursor-pointer">
+                                                <i class="fas fa-calendar fa-2x text-warning mb-2"></i>
+                                                <h6 class="text-warning">12 Months</h6>
+                                                <div class="badge badge-warning mb-1">5% Interest</div>
+                                                <small class="text-muted d-block">Most Popular</small>
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="card border-danger installment-option" data-period="24" data-rate="7">
+                                        <div class="card-body text-center">
+                                            <input type="radio" name="installment_period" value="24" id="installment_24">
+                                            <label for="installment_24" class="mb-0 d-block cursor-pointer">
+                                                <i class="fas fa-calendar fa-2x text-danger mb-2"></i>
+                                                <h6 class="text-danger">24 Months</h6>
+                                                <div class="badge badge-danger mb-1">7% Interest</div>
+                                                <small class="text-muted d-block">Longest Term</small>
                                             </label>
                                         </div>
                                     </div>
@@ -379,8 +543,44 @@ $sales_result = $conn->query($sales_query);
                                     <div id="subtotalDisplay">₱0.00</div>
                                 </div>
                                 <div class="col-6">
-                                    <small class="text-muted">Discount:</small>
+                                    <small class="text-muted" id="discountLabel">Discount:</small>
                                     <div id="discountDisplay" class="text-success">₱0.00 (0%)</div>
+                                </div>
+                            </div>
+                            <!-- Installment Details (Hidden by default) -->
+                            <div id="installmentDetails" style="display: none;">
+                                <hr class="my-2">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <small class="text-muted">Original Price:</small>
+                                        <div id="originalPriceDisplay" class="text-info">₱0.00</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Interest Rate:</small>
+                                        <div id="interestRateDisplay">0%</div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-6">
+                                        <small class="text-muted">Interest Amount:</small>
+                                        <div id="interestAmountDisplay" class="text-warning">₱0.00</div>
+                                    </div>
+                                    <div class="col-6">
+                                        <small class="text-muted">Monthly Payment:</small>
+                                        <div id="monthlyPaymentDisplay" class="text-primary font-weight-bold">₱0.00</div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">Original Price + Interest:</small>
+                                        <div id="originalPlusInterestDisplay" class="text-success font-weight-bold">₱0.00 + ₱0.00 = ₱0.00</div>
+                                    </div>
+                                </div>
+                                <div class="row mt-2">
+                                    <div class="col-12">
+                                        <small class="text-muted">Total Amount:</small>
+                                        <div id="totalWithInterestDisplay" class="text-danger font-weight-bold h5">₱0.00</div>
+                                    </div>
                                 </div>
                             </div>
                             <hr class="my-2">
@@ -423,28 +623,99 @@ $sales_result = $conn->query($sales_query);
     // Global variables for form data
     let formData = {};
 
+    // Function to get interest rate based on installment period
+    function getInterestRate(period) {
+        const interestRates = {
+            '6': 3,
+            '12': 5,
+            '24': 7
+        };
+        return interestRates[period] || 0;
+    }
+
     function calculateTotal() {
         const quantity = parseInt(document.getElementById('quantity').value) || 0;
         const price = parseFloat(document.getElementById('selling_price').value) || 0;
         const selectedOption = document.getElementById('product_id').options[document.getElementById('product_id').selectedIndex];
         const productName = selectedOption.getAttribute('data-name') || '';
         const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        const installmentPeriod = document.querySelector('input[name="installment_period"]:checked');
         
         const subtotal = quantity * price;
         const isDiscounted = paymentMethod && paymentMethod.value === 'cash';
-        const discountPercentage = isDiscounted ? 10 : 0;
-        const discountAmount = subtotal * (discountPercentage / 100);
-        const total = subtotal - discountAmount;
+        const isInstallment = paymentMethod && paymentMethod.value === 'installment';
+        
+        let discountPercentage = 0;
+        let discountAmount = 0;
+        let interestRate = 0;
+        let interestAmount = 0;
+        let monthlyPayment = 0;
+        let totalWithInterest = 0;
+        let total = subtotal;
+        
+        // Debug logging
+        console.log('Payment Method:', paymentMethod ? paymentMethod.value : 'none');
+        console.log('Installment Period:', installmentPeriod ? installmentPeriod.value : 'none');
+        console.log('Is Installment:', isInstallment);
+        
+        if (isDiscounted) {
+            discountPercentage = 10;
+            discountAmount = subtotal * (discountPercentage / 100);
+            total = subtotal - discountAmount;
+        } else if (isInstallment && installmentPeriod) {
+            // Fetch interest rate from the selected installment period
+            interestRate = getInterestRate(installmentPeriod.value);
+            interestAmount = subtotal * (interestRate / 100);
+            totalWithInterest = subtotal + interestAmount;
+            monthlyPayment = totalWithInterest / parseInt(installmentPeriod.value);
+            total = totalWithInterest;
+            console.log('Selected Period:', installmentPeriod.value);
+            console.log('Interest Rate:', interestRate);
+            console.log('Interest Amount:', interestAmount);
+        }
         
         // Update displays
         document.getElementById('subtotalDisplay').textContent = `₱${subtotal.toFixed(2)}`;
+        
+        if (isInstallment && installmentPeriod) {
+            // Show installment details
+            document.getElementById('discountLabel').textContent = 'Interest:';
+            document.getElementById('discountDisplay').textContent = `₱${interestAmount.toFixed(2)} (${interestRate}%)`;
+            document.getElementById('discountDisplay').className = 'text-warning font-weight-bold';
+            
+            // Show installment details
+            document.getElementById('installmentDetails').style.display = 'block';
+            document.getElementById('originalPriceDisplay').textContent = `₱${subtotal.toFixed(2)}`;
+            document.getElementById('interestRateDisplay').textContent = `${interestRate}%`;
+            document.getElementById('interestAmountDisplay').textContent = `₱${interestAmount.toFixed(2)}`;
+            document.getElementById('monthlyPaymentDisplay').textContent = `₱${monthlyPayment.toFixed(2)}`;
+            document.getElementById('originalPlusInterestDisplay').textContent = `₱${subtotal.toFixed(2)} + ₱${interestAmount.toFixed(2)} = ₱${totalWithInterest.toFixed(2)}`;
+            document.getElementById('totalWithInterestDisplay').textContent = `₱${totalWithInterest.toFixed(2)}`;
+            
+            document.getElementById('totalDisplay').textContent = `Total: ₱${totalWithInterest.toFixed(2)}`;
+        } else {
+            // Show discount details
+            document.getElementById('discountLabel').textContent = 'Discount:';
         document.getElementById('discountDisplay').textContent = `₱${discountAmount.toFixed(2)} (${discountPercentage}%)`;
         document.getElementById('discountDisplay').className = isDiscounted ? 'text-success font-weight-bold' : 'text-muted';
+            
+            // Hide installment details
+            document.getElementById('installmentDetails').style.display = 'none';
         document.getElementById('totalDisplay').textContent = `Total: ₱${total.toFixed(2)}`;
+        }
         
         // Show sale info
         if (quantity > 0 && productName) {
-            const paymentText = paymentMethod ? ` (${paymentMethod.value === 'cash' ? 'Cash - 10% discount' : 'Installment'})` : '';
+            let paymentText = '';
+            if (paymentMethod) {
+                if (paymentMethod.value === 'cash') {
+                    paymentText = ' (Cash - 10% discount)';
+                } else if (paymentMethod.value === 'installment' && installmentPeriod) {
+                    paymentText = ` (Installment - ${installmentPeriod.value} months, ${interestRate}% interest)`;
+                } else {
+                    paymentText = ' (Installment)';
+                }
+            }
             document.getElementById('saleDetails').textContent = `Selling ${quantity} unit(s) of ${productName}${paymentText}`;
             document.getElementById('saleInfo').style.display = 'block';
         } else {
@@ -458,12 +729,19 @@ $sales_result = $conn->query($sales_query);
             unitPrice: price,
             subtotal: subtotal,
             discount: discountAmount,
+            interest: interestAmount,
             total: total,
+            totalWithInterest: totalWithInterest,
+            monthlyPayment: monthlyPayment,
             paymentMethod: paymentMethod ? paymentMethod.value : '',
+            installmentPeriod: installmentPeriod ? installmentPeriod.value : '',
+            interestRate: interestRate,
             discountPercentage: discountPercentage
         };
     }
 
+    // Function to initialize event listeners
+    function initializeEventListeners() {
     // Add event listeners for calculation
     document.getElementById('quantity').addEventListener('input', function() {
         updateStockInfo();
@@ -474,6 +752,8 @@ $sales_result = $conn->query($sales_query);
     // Payment method change
     document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
         radio.addEventListener('change', function() {
+                console.log('Payment method changed to:', this.value);
+                
             // Update visual selection
             document.querySelectorAll('.payment-option').forEach(option => {
                 option.classList.remove('border-primary', 'bg-light');
@@ -481,10 +761,65 @@ $sales_result = $conn->query($sales_query);
             
             const selectedCard = document.querySelector(`.payment-option[data-method="${this.value}"]`);
             selectedCard.classList.add('border-primary', 'bg-light');
+                
+                // Show/hide installment options
+                const installmentOptions = document.getElementById('installmentOptions');
+                if (this.value === 'installment') {
+                    installmentOptions.style.display = 'block';
+                    console.log('Installment options shown');
+                } else {
+                    installmentOptions.style.display = 'none';
+                    // Clear installment selections
+                    document.querySelectorAll('input[name="installment_period"]').forEach(radio => {
+                        radio.checked = false;
+                    });
+                    document.querySelectorAll('.installment-option').forEach(option => {
+                        option.classList.remove('border-primary', 'bg-light');
+                    });
+                    console.log('Installment options hidden and cleared');
+                }
             
             calculateTotal();
         });
     });
+
+        // Installment period change - use event delegation to ensure it works
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.name === 'installment_period') {
+                // Update visual selection
+                document.querySelectorAll('.installment-option').forEach(option => {
+                    option.classList.remove('border-primary', 'bg-light');
+                });
+                
+                const selectedCard = document.querySelector(`.installment-option[data-period="${e.target.value}"]`);
+                if (selectedCard) {
+                    selectedCard.classList.add('border-primary', 'bg-light');
+                }
+                
+                // Get and display the interest rate for the selected period
+                const selectedPeriod = e.target.value;
+                const interestRate = getInterestRate(selectedPeriod);
+                
+                console.log('Installment period changed to:', selectedPeriod);
+                console.log('Interest rate for', selectedPeriod, 'months:', interestRate + '%');
+                
+                // Update the interest rate display immediately
+                const interestRateDisplay = document.getElementById('interestRateDisplay');
+                if (interestRateDisplay) {
+                    interestRateDisplay.textContent = interestRate + '%';
+                }
+                
+                calculateTotal();
+            }
+        });
+    }
+
+    // Initialize event listeners when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initializeEventListeners);
+    } else {
+        initializeEventListeners();
+    }
 
     // Function to update stock info
     function updateStockInfo() {
@@ -543,6 +878,21 @@ $sales_result = $conn->query($sales_query);
             return;
         }
 
+        // Check if installment is selected but no period is chosen
+        const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+        if (paymentMethod && paymentMethod.value === 'installment') {
+            const installmentPeriod = document.querySelector('input[name="installment_period"]:checked');
+            if (!installmentPeriod) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Installment Period Required!',
+                    text: 'Please select an installment period (6, 12, or 24 months) for installment payment.',
+                    confirmButtonColor: '#dc3545'
+                });
+                return;
+            }
+        }
+
         // Check stock availability
         const selectedOption = document.getElementById('product_id').options[document.getElementById('product_id').selectedIndex];
         const requestedQuantity = parseInt(document.getElementById('quantity').value) || 0;
@@ -558,9 +908,27 @@ $sales_result = $conn->query($sales_query);
             return;
         }
 
+        // Debug: Log form data before submission
+        console.log('Form Data Before Submission:', formData);
+        console.log('Payment Method:', paymentMethod ? paymentMethod.value : 'none');
+        console.log('Installment Period:', document.querySelector('input[name="installment_period"]:checked') ? document.querySelector('input[name="installment_period"]:checked').value : 'none');
+
         // Create confirmation message with sale details
-        const paymentMethodText = formData.paymentMethod === 'cash' ? 'Cash Payment (10% Discount)' : 'Installment Payment';
-        const discountText = formData.discount > 0 ? `<br><strong>Discount:</strong> ₱${formData.discount.toFixed(2)}` : '';
+        let paymentMethodText = '';
+        let additionalDetails = '';
+        
+        if (formData.paymentMethod === 'cash') {
+            paymentMethodText = 'Cash Payment (10% Discount)';
+            additionalDetails = `<br><strong>Discount:</strong> ₱${formData.discount.toFixed(2)}`;
+        } else if (formData.paymentMethod === 'installment') {
+            paymentMethodText = `Installment Payment (${formData.installmentPeriod} months)`;
+            additionalDetails = `
+                <br><strong>Original Price:</strong> ₱${formData.subtotal.toFixed(2)}
+                <br><strong>Interest Rate:</strong> ${formData.interestRate}%
+                <br><strong>Interest Amount:</strong> ₱${formData.interest.toFixed(2)}
+                <br><strong>Monthly Payment:</strong> ₱${formData.monthlyPayment.toFixed(2)}
+                <br><strong>Total with Interest:</strong> ₱${formData.totalWithInterest.toFixed(2)}`;
+        }
         
         Swal.fire({
             title: 'Confirm Sale Transaction',
@@ -571,7 +939,7 @@ $sales_result = $conn->query($sales_query);
                     <strong>Unit Price:</strong> ₱${formData.unitPrice.toFixed(2)}<br>
                     <strong>Payment Method:</strong> ${paymentMethodText}<br>
                     <strong>Subtotal:</strong> ₱${formData.subtotal.toFixed(2)}
-                    ${discountText}
+                    ${additionalDetails}
                     <hr>
                     <strong class="text-primary">Total Amount:</strong> <span class="text-primary">₱${formData.total.toFixed(2)}</span>
                 </div>
@@ -601,6 +969,30 @@ $sales_result = $conn->query($sales_query);
         return new Promise((resolve, reject) => {
             const form = document.getElementById('saleForm');
             const formDataToSend = new FormData(form);
+            
+            // Debug: Log what's being sent
+            console.log('FormData contents:');
+            for (let [key, value] of formDataToSend.entries()) {
+                console.log(key + ': ' + value);
+            }
+            
+            // Debug: Check radio button values
+            const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
+            const installmentPeriod = document.querySelector('input[name="installment_period"]:checked');
+            console.log('Payment method radio:', paymentMethod ? paymentMethod.value : 'none selected');
+            console.log('Installment period radio:', installmentPeriod ? installmentPeriod.value : 'none selected');
+            
+            // Ensure payment method is included in FormData
+            if (paymentMethod) {
+                formDataToSend.set('payment_method', paymentMethod.value);
+                console.log('Added payment_method to FormData:', paymentMethod.value);
+            }
+            
+            // Ensure installment period is included in FormData if selected
+            if (installmentPeriod) {
+                formDataToSend.set('installment_period', installmentPeriod.value);
+                console.log('Added installment_period to FormData:', installmentPeriod.value);
+            }
             
             // Show loading on submit button
             const submitBtn = document.getElementById('submitSale');
@@ -639,11 +1031,158 @@ $sales_result = $conn->query($sales_query);
 
     // Enhanced action functions with SweetAlert
     function viewSale(id) {
+        // Show loading state
         Swal.fire({
-            title: `Sale Details #${id}`,
-            text: 'Sale details would be loaded here...',
+            title: 'Loading Sale Details...',
+            text: 'Please wait while we fetch the transaction details.',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Fetch sale details via AJAX
+        fetch(`view_sale_details.php?sale_id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const sale = data.sale;
+                    let paymentDetails = '';
+                    
+                    if (sale.payment_method === 'installment') {
+                        paymentDetails = `
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Payment Method:</strong><br>
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-credit-card mr-1"></i>
+                                        Installment (${sale.installment_period} months)
+                                    </span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Interest Rate:</strong><br>
+                                    <span class="text-warning">${sale.interest_rate}%</span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Original Price:</strong><br>
+                                    <span class="text-info">₱${parseFloat(sale.original_price).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Interest Amount:</strong><br>
+                                    <span class="text-warning">₱${parseFloat(sale.interest_amount).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <strong>Monthly Payment:</strong><br>
+                                    <span class="text-primary font-weight-bold">₱${parseFloat(sale.monthly_payment).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Total with Interest:</strong><br>
+                                    <span class="text-danger font-weight-bold">₱${parseFloat(sale.total_amount).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        paymentDetails = `
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>Payment Method:</strong><br>
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-money-bill-wave mr-1"></i>
+                                        Cash Payment
+                                    </span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Original Price:</strong><br>
+                                    <span class="text-info">₱${parseFloat(sale.original_price).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Discount (10%):</strong><br>
+                                    <span class="text-success">₱${(parseFloat(sale.original_price) - parseFloat(sale.total_amount)).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    Swal.fire({
+                        title: `Sale Details #${sale.sale_id}`,
+                        html: `
+                            <div class="text-left">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Product:</strong><br>
+                                        <i class="fas fa-cube text-info mr-1"></i>
+                                        ${sale.aircon_model}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Quantity:</strong><br>
+                                        <span class="badge badge-info">${sale.quantity_sold} unit(s)</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Unit Price:</strong><br>
+                                        ₱${parseFloat(sale.selling_price).toFixed(2)}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Cashier:</strong><br>
+                                        <i class="fas fa-user-circle text-primary mr-1"></i>
+                                        ${sale.cashier}
+                                    </div>
+                                </div>
+                                <hr>
+                                ${paymentDetails}
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Date of Sale:</strong><br>
+                                        <i class="fas fa-calendar text-muted mr-1"></i>
+                                        ${new Date(sale.date_of_sale).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Transaction ID:</strong><br>
+                                        <code>#${sale.sale_id.toString().padStart(3, '0')}</code>
+                                    </div>
+                                </div>
+                            </div>
+                        `,
             icon: 'info',
-            confirmButtonColor: '#007bff'
+                        confirmButtonColor: '#007bff',
+                        confirmButtonText: '<i class="fas fa-check mr-1"></i>Close',
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to fetch sale details.',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while fetching sale details.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
         });
     }
 
@@ -659,11 +1198,13 @@ $sales_result = $conn->query($sales_query);
             cancelButtonText: 'Cancel'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Here you would implement actual printing logic
+                // Open print window with receipt details
+                window.open(`print_receipt.php?sale_id=${id}`, '_blank', 'width=800,height=600,scrollbars=yes,resizable=yes');
+                
                 Swal.fire({
                     icon: 'success',
-                    title: 'Receipt Sent to Printer!',
-                    text: `Receipt for sale #${id} has been sent to the printer.`,
+                    title: 'Receipt Opened!',
+                    text: `Receipt for sale #${id} has been opened in a new window.`,
                     timer: 2000,
                     showConfirmButton: false
                 });
@@ -695,12 +1236,30 @@ $sales_result = $conn->query($sales_query);
                 // Reset displays
                 document.getElementById('subtotalDisplay').textContent = '₱0.00';
                 document.getElementById('discountDisplay').textContent = '₱0.00 (0%)';
+                document.getElementById('discountLabel').textContent = 'Discount:';
                 document.getElementById('totalDisplay').textContent = 'Total: ₱0.00';
                 document.getElementById('saleInfo').style.display = 'none';
                 document.getElementById('stockInfo').innerHTML = 'Select product first';
                 
+                // Hide installment details
+                document.getElementById('installmentDetails').style.display = 'none';
+                document.getElementById('installmentOptions').style.display = 'none';
+                
+                // Reset installment displays
+                document.getElementById('originalPriceDisplay').textContent = '₱0.00';
+                document.getElementById('interestRateDisplay').textContent = '0%';
+                document.getElementById('interestAmountDisplay').textContent = '₱0.00';
+                document.getElementById('monthlyPaymentDisplay').textContent = '₱0.00';
+                document.getElementById('originalPlusInterestDisplay').textContent = '₱0.00 + ₱0.00 = ₱0.00';
+                document.getElementById('totalWithInterestDisplay').textContent = '₱0.00';
+                
                 // Remove payment method selections
                 document.querySelectorAll('.payment-option').forEach(option => {
+                    option.classList.remove('border-primary', 'bg-light');
+                });
+                
+                // Remove installment selections
+                document.querySelectorAll('.installment-option').forEach(option => {
                     option.classList.remove('border-primary', 'bg-light');
                 });
             });
@@ -724,12 +1283,30 @@ $sales_result = $conn->query($sales_query);
         document.getElementById('saleForm').reset();
         document.getElementById('subtotalDisplay').textContent = '₱0.00';
         document.getElementById('discountDisplay').textContent = '₱0.00 (0%)';
+        document.getElementById('discountLabel').textContent = 'Discount:';
         document.getElementById('totalDisplay').textContent = 'Total: ₱0.00';
         document.getElementById('saleInfo').style.display = 'none';
         document.getElementById('stockInfo').innerHTML = 'Select product first';
         
+        // Hide installment details
+        document.getElementById('installmentDetails').style.display = 'none';
+        document.getElementById('installmentOptions').style.display = 'none';
+        
+        // Reset installment displays
+        document.getElementById('originalPriceDisplay').textContent = '₱0.00';
+        document.getElementById('interestRateDisplay').textContent = '0%';
+        document.getElementById('interestAmountDisplay').textContent = '₱0.00';
+        document.getElementById('monthlyPaymentDisplay').textContent = '₱0.00';
+        document.getElementById('originalPlusInterestDisplay').textContent = '₱0.00 + ₱0.00 = ₱0.00';
+        document.getElementById('totalWithInterestDisplay').textContent = '₱0.00';
+        
         // Remove payment method selections
         document.querySelectorAll('.payment-option').forEach(option => {
+            option.classList.remove('border-primary', 'bg-light');
+        });
+        
+        // Remove installment selections
+        document.querySelectorAll('.installment-option').forEach(option => {
             option.classList.remove('border-primary', 'bg-light');
         });
     });

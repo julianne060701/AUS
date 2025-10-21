@@ -588,6 +588,7 @@ function showWelcomeAnimation() {
     // Redirect after animation completes
     setTimeout(() => {
         <?php if ($login_success): ?>
+<<<<<<< HEAD
     <?php if (isset($_SESSION['role'])): ?>
         <?php if ($_SESSION['role'] == 'admin'): ?>
             window.location.href = 'dashboard/index.php';
@@ -595,6 +596,13 @@ function showWelcomeAnimation() {
             window.location.href = 'employee/index.php';
         <?php elseif ($_SESSION['role'] == 'installer'): ?>
             window.location.href = 'installer/installer_dashboard.php';
+=======
+            <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
+                window.location.href = 'dashboard/index.php';
+            <?php elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'employee'): ?>
+                window.location.href = 'employee/index.php';
+            <?php endif; ?>
+>>>>>>> 445365674266da7fe03b48808ee7af0937b3c995
         <?php endif; ?>
     <?php endif; ?>
 <?php endif; ?>

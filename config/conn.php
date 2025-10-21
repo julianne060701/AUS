@@ -1,6 +1,6 @@
 <?php
 $host = "localhost";
-$db = "bigasanDb";
+$db = "ausdb";
 $user = "root";
 $pass = "";
 

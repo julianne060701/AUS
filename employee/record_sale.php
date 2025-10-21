@@ -215,11 +215,12 @@ $sales_result = $conn->query($sales_query);
                                                             <?php echo date('M d, Y ', strtotime($row['date_of_sale'])); ?>
                                                         </small>
                                                     </td>
-                                                    <td>
-                                                        <button class="btn btn-sm btn-outline-primary" onclick="viewSale(<?php echo $row['sale_id']; ?>)" title="View Details">
+                                                   <td class="text-center">
+                                                        <button class="btn btn-sm btn-outline-primary" 
+                                                                onclick="viewSaleDetails(<?php echo $row['sale_id']; ?>)" 
+                                                                title="View Sale Details">
                                                             <i class="fas fa-eye"></i>
                                                         </button>
-                                                      
                                                     </td>
                                                 </tr>
                                             <?php endwhile; ?>
@@ -403,7 +404,29 @@ $sales_result = $conn->query($sales_query);
         </div>
     </div>
 </div>
-
+<!-- Sale Details Modal -->
+<div class="modal fade" id="saleDetailsModal" tabindex="-1" role="dialog" aria-labelledby="saleDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="saleDetailsModalLabel">
+                    <i class="fas fa-receipt mr-2"></i>Sale Details
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body" id="saleDetailsContent">
+                <!-- Sale details will be loaded here -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                    <i class="fas fa-times mr-1"></i>Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
   <!-- jQuery -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     
