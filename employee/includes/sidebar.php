@@ -33,10 +33,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li>
 
     <!-- Record Sale -->
-    <li class="nav-item <?= ($currentPage == 'record_sale.php') ? 'active' : '' ?>">
-        <a class="nav-link" href="record_sale.php">
+    <li class="nav-item <?= ($currentPage == 'withdrawal_products.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="withdrawal_products.php">
             <i class="fas fa-fw fa-shopping-cart"></i>
-            <span>Record Sale</span>
+            <span>Withdrawal of Products</span>
         </a>
     </li>
 

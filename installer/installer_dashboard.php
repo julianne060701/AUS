@@ -9,8 +9,35 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'installer') {
 
 include '../config/conn.php';
 
-// Get the logged-in installer's name from session
-$installer_name = $_SESSION['username'] ?? 'Unknown';
+// Get the logged-in installer's full name from users table
+$user_id = $_SESSION['user_id'];
+$user_query = "SELECT full_name FROM users WHERE id = ? AND role = 'installer'";
+$user_stmt = $conn->prepare($user_query);
+$user_stmt->bind_param("i", $user_id);
+$user_stmt->execute();
+$user_result = $user_stmt->get_result();
+$user_data = $user_result->fetch_assoc();
+
+if (!$user_data) {
+    header("Location: ../login.php");
+    exit();
+}
+
+$installer_name = $user_data['full_name'];
+
+// Get statistics for the installer
+$stats_query = "SELECT 
+    COUNT(*) as total_schedules,
+    SUM(CASE WHEN status = 'Scheduled' THEN 1 ELSE 0 END) as scheduled,
+    SUM(CASE WHEN status = 'In Progress' THEN 1 ELSE 0 END) as in_progress,
+    SUM(CASE WHEN status = 'Completed' THEN 1 ELSE 0 END) as completed,
+    SUM(CASE WHEN status = 'Cancelled' THEN 1 ELSE 0 END) as cancelled
+    FROM installer_schedules WHERE installer_name = ?";
+$stats_stmt = $conn->prepare($stats_query);
+$stats_stmt->bind_param("s", $installer_name);
+$stats_stmt->execute();
+$stats_result = $stats_stmt->get_result();
+$stats = $stats_result->fetch_assoc();
 
 // Fetch schedules for the logged-in installer
 $query = "SELECT * FROM installer_schedules 
@@ -134,10 +161,77 @@ foreach ($schedules as $schedule) {
 
                 <!-- Page Heading -->
                 <div class="d-sm-flex align-items-center justify-content-between mb-4">
-                    <h1 class="h3 mb-0 text-gray-800">My Installation Schedule</h1>
+                    <h1 class="h3 mb-0 text-gray-800">My Installation Schedule - <?php echo htmlspecialchars($installer_name); ?></h1>
                     <div class="text-muted">
                         <i class="fas fa-calendar-alt mr-1"></i>
                         <?php echo date('F j, Y'); ?>
+                    </div>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="row mb-4">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-primary shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Schedules</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['total_schedules']; ?></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-calendar fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-info shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Scheduled</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['scheduled']; ?></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-clock fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-warning shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">In Progress</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['in_progress']; ?></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-tools fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card border-left-success shadow h-100 py-2">
+                            <div class="card-body">
+                                <div class="row no-gutters align-items-center">
+                                    <div class="col mr-2">
+                                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                                        <div class="h5 mb-0 font-weight-bold text-gray-800"><?php echo $stats['completed']; ?></div>
+                                    </div>
+                                    <div class="col-auto">
+                                        <i class="fas fa-check-circle fa-2x text-gray-300"></i>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -156,7 +250,7 @@ foreach ($schedules as $schedule) {
                             <h4 class="mb-0">
                                 <i class="fas fa-calendar-day mr-2"></i>
                                 <?php echo date('l, F j, Y', strtotime($date)); ?>
-                                <span class="badge badge-light ml-2"><?php echo count($date_schedules); ?> Schedule<?php echo count($date_schedules) > 1 ? 's' : ''; ?></span>
+                                <span class="badge badge-gray ml-2"><?php echo count($date_schedules); ?> Schedule<?php echo count($date_schedules) > 1 ? 's' : ''; ?></span>
                             </h4>
                         </div>
 
@@ -269,8 +363,13 @@ foreach ($schedules as $schedule) {
                                                 </button>
                                                 <?php endif; ?>
                                                 <?php if ($schedule['status'] == 'In Progress'): ?>
-                                                <button class="btn btn-sm btn-success ml-2" onclick="updateStatus(<?php echo $schedule['id']; ?>, 'Completed')">
+                                                <button class="btn btn-sm btn-success ml-2" onclick="showCompletionModal(<?php echo $schedule['id']; ?>)">
                                                     <i class="fas fa-check mr-1"></i> Complete
+                                                </button>
+                                                <?php endif; ?>
+                                                <?php if (in_array($schedule['status'], ['Scheduled', 'In Progress'])): ?>
+                                                <button class="btn btn-sm btn-danger ml-2" onclick="updateStatus(<?php echo $schedule['id']; ?>, 'Cancelled')">
+                                                    <i class="fas fa-times mr-1"></i> Cancel
                                                 </button>
                                                 <?php endif; ?>
                                             </div>
@@ -288,6 +387,53 @@ foreach ($schedules as $schedule) {
         </div>
 
         <?php include('includes/footer.php'); ?>
+    </div>
+</div>
+
+<!-- Completion Modal -->
+<div class="modal fade" id="completionModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-check-circle mr-2"></i>Complete Installation
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="completionForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle mr-2"></i>
+                        Please upload a photo of the completed installation before marking it as complete.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="completion_image" class="font-weight-bold">
+                            <i class="fas fa-camera mr-2"></i>Completion Photo *
+                        </label>
+                        <input type="file" class="form-control-file" id="completion_image" name="completion_image" 
+                               accept="image/*" required>
+                        <small class="form-text text-muted">
+                            Upload a photo showing the completed installation. Supported formats: JPEG, PNG, GIF (Max 5MB)
+                        </small>
+                    </div>
+                    
+                    <div id="imagePreview" class="mt-3" style="display: none;">
+                        <h6>Preview:</h6>
+                        <img id="previewImg" src="" alt="Preview" class="img-fluid rounded" style="max-height: 300px;">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="completeBtn">
+                        <i class="fas fa-check mr-2"></i>Complete Installation
+                    </button>
+                </div>
+                <input type="hidden" id="completion_schedule_id" name="schedule_id">
+            </form>
+        </div>
     </div>
 </div>
 
@@ -329,9 +475,14 @@ function updateStatus(scheduleId, newStatus) {
                 schedule_id: scheduleId,
                 status: newStatus
             },
+            dataType: 'json',
             success: function(response) {
-                alert('Status updated successfully!');
-                location.reload();
+                if (response.success) {
+                    alert('Status updated successfully!');
+                    location.reload();
+                } else {
+                    alert('Error: ' + response.message);
+                }
             },
             error: function() {
                 alert('Error updating status. Please try again.');
@@ -339,6 +490,64 @@ function updateStatus(scheduleId, newStatus) {
         });
     }
 }
+
+function showCompletionModal(scheduleId) {
+    $('#completion_schedule_id').val(scheduleId);
+    $('#completionForm')[0].reset();
+    $('#imagePreview').hide();
+    $('#completionModal').modal('show');
+}
+
+// Image preview functionality
+$('#completion_image').change(function() {
+    const file = this.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            $('#previewImg').attr('src', e.target.result);
+            $('#imagePreview').show();
+        };
+        reader.readAsDataURL(file);
+    } else {
+        $('#imagePreview').hide();
+    }
+});
+
+// Handle completion form submission
+$('#completionForm').submit(function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    const completeBtn = $('#completeBtn');
+    
+    // Disable button and show loading
+    completeBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+    
+    $.ajax({
+        url: 'upload_completion_image.php',
+        method: 'POST',
+        data: formData,
+        processData: false,
+        contentType: false,
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert('Installation completed successfully with image uploaded!');
+                $('#completionModal').modal('hide');
+                location.reload();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('Error uploading image. Please try again.');
+        },
+        complete: function() {
+            // Re-enable button
+            completeBtn.prop('disabled', false).html('<i class="fas fa-check mr-2"></i>Complete Installation');
+        }
+    });
+});
 
 function viewImage(imagePath) {
     $('#modalImage').attr('src', imagePath);

@@ -179,56 +179,7 @@ while ($row = $result->fetch_assoc()) {
                     </div>
 
                     <!-- First Stats Row -->
-                    <div class="row mb-4">
-                        <div class="col-xl-3 col-md-6">
-                            <div class="stats-card success">
-                                <div class="stats-icon" style="background: var(--success-color);">
-                                    <i class="fas fa-peso-sign"></i>
-                                </div>
-                                <div class="stats-text">
-                                    <h6 class="text-muted mb-1">Total Sales Today</h6>
-                                    <h4 class="mb-0">₱<?php echo number_format($stats['total_sales_today'], 2); ?></h4>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6">
-                            <div class="stats-card info">
-                                <div class="stats-icon" style="background: var(--info-color);">
-                                    <i class="fas fa-shopping-cart"></i>
-                                </div>
-                                <div class="stats-text">
-                                    <h6 class="text-muted mb-1">Transactions Today</h6>
-                                    <h4 class="mb-0"><?php echo $stats['transactions_today']; ?></h4>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6">
-                            <div class="stats-card warning">
-                                <div class="stats-icon" style="background: var(--warning-color);">
-                                    <i class="fas fa-wind"></i>
-                                </div>
-                                <div class="stats-text">
-                                    <h6 class="text-muted mb-1">Units Sold Today</h6>
-                                    <h4 class="mb-0"><?php echo $stats['units_sold_today']; ?></h4>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-xl-3 col-md-6">
-                            <div class="stats-card" style="border-left-color: var(--secondary-color);">
-                                <div class="stats-icon" style="background: var(--secondary-color);">
-                                    <i class="fas fa-chart-line"></i>
-                                </div>
-                                <div class="stats-text">
-                                    <h6 class="text-muted mb-1">Average Sale</h6>
-                                    <h4 class="mb-0">₱<?php echo number_format($stats['average_sale'], 2); ?></h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
+                   
                     <!-- Second Stats Row -->
                     <div class="row mb-4">
                         <div class="col-xl-3 col-md-6">
@@ -288,22 +239,7 @@ while ($row = $result->fetch_assoc()) {
                             </div>
                         </div>
 
-                        <div class="col-xl-3 col-md-6">
-                            <div class="card stats-card border-left-success h-100">
-                                <div class="card-body">
-                                    <div class="row no-gutters align-items-center">
-                                        <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
-                                                Inventory Value</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">
-                                                ₱<?php echo number_format($stats['total_value'], 2); ?>
-                                            </div>
-                                        </div>
-                                        <div class="col-auto">
-                                            <i class="fas fa-peso-sign fa-2x text-success"></i>
-                                        </div>
-                                    </div>
-                                </div>
+                    
                             </div>
                         </div>
                     </div>

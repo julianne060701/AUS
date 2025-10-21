@@ -72,20 +72,33 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </li>
 
-    <!-- Sales Report -->
-    <li class="nav-item <?= ($currentPage == 'withdrawal_report.php') ? 'active' : '' ?>">
-        <a class="nav-link" href="../withdrawal_products/withdrawal_report.php">
-            <i class="fas fa-fw fa-chart-line"></i>
-            <span>Withdrawal Report</span>
-        </a>
-    </li>
-
     <!-- Installer Schedule -->
     <li class="nav-item <?= ($currentPage == 'installer_schedule.php') ? 'active' : '' ?>">
         <a class="nav-link" href="../installer_schedule/installer_schedule.php">
             <i class="fas fa-fw fa-calendar-alt"></i>
             <span>Installer Schedule</span>
         </a>
+    </li>
+
+      <!-- Reports Dropdown -->
+      <li class="nav-item">
+        <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports" aria-expanded="true" aria-controls="collapseReports">
+            <i class="fas fa-fw fa-chart-line"></i>
+            <span>Reports</span>
+        </a>
+        <div id="collapseReports" class="collapse" aria-labelledby="headingReports" data-parent="#accordionSidebar">
+            <div class="bg-white py-2 collapse-inner rounded">
+                <h6 class="collapse-header">Report Types:</h6>
+                <a class="collapse-item <?= ($currentPage == 'inventory_report.php') ? 'active' : '' ?>" href="../withdrawal_products/inventory_report.php">
+                    <i class="fas fa-fw fa-boxes"></i>
+                    Inventory Report
+                </a>
+                <a class="collapse-item <?= ($currentPage == 'install_report.php') ? 'active' : '' ?>" href="../withdrawal_products/install_report.php">
+                    <i class="fas fa-fw fa-tools"></i>
+                    Installation Report
+                </a>
+            </div>
+        </div>
     </li>
 
     <!-- Installer Schedule Report -->
