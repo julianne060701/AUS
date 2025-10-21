@@ -174,7 +174,7 @@ while ($row = $result->fetch_assoc()) {
                     </div>
 
                     <!-- First Stats Row -->
-                    <div class="row mb-4">
+                    <!-- <div class="row mb-4">
                         <div class="col-xl-3 col-md-6">
                             <div class="stats-card success">
                                 <div class="stats-icon" style="background: var(--success-color);">
@@ -222,7 +222,7 @@ while ($row = $result->fetch_assoc()) {
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </div> -->
 
                     <!-- Second Stats Row -->
                     <div class="row mb-4">
@@ -283,7 +283,7 @@ while ($row = $result->fetch_assoc()) {
                             </div>
                         </div>
 
-                        <div class="col-xl-3 col-md-6">
+                        <!-- <div class="col-xl-3 col-md-6">
                             <div class="card stats-card border-left-success h-100">
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
@@ -299,7 +299,7 @@ while ($row = $result->fetch_assoc()) {
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
 

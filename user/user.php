@@ -138,6 +138,7 @@ include '../config/conn.php';
                                             <select name='role' class='form-control' required>
                                                 <option value='admin' ".($user['role'] == 'Admin' ? 'selected' : '').">Admin</option>
                                                 <option value='employee' ".($user['role'] == 'Employee' ? 'selected' : '').">Employee</option>
+                                                <option value='installer' ".($user['role'] == 'Installer' ? 'selected' : '').">Installer</option>
                                             </select>
                                         </div>
                                     </div>
@@ -180,6 +181,7 @@ include '../config/conn.php';
                                             <option value="">Select Role</option>
                                             <option value="admin">Admin</option>
                                             <option value="employee">Employee</option>
+                                            <option value="installer">Installer</option>
                                         </select>
                                     </div>
                                 </div>

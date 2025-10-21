@@ -588,12 +588,17 @@ function showWelcomeAnimation() {
     // Redirect after animation completes
     setTimeout(() => {
         <?php if ($login_success): ?>
-            <?php if (isset($_SESSION['role']) && $_SESSION['role'] == 'admin'): ?>
-                window.location.href = 'dashboard/index.php';
-            <?php elseif (isset($_SESSION['role']) && $_SESSION['role'] == 'technician'): ?>
-                window.location.href = 'technician/index.php';
-            <?php endif; ?>
+    <?php if (isset($_SESSION['role'])): ?>
+        <?php if ($_SESSION['role'] == 'admin'): ?>
+            window.location.href = 'dashboard/index.php';
+        <?php elseif ($_SESSION['role'] == 'employee'): ?>
+            window.location.href = 'employee/index.php';
+        <?php elseif ($_SESSION['role'] == 'installer'): ?>
+            window.location.href = 'installer/installer_dashboard.php';
         <?php endif; ?>
+    <?php endif; ?>
+<?php endif; ?>
+
     }, 3500); // 3.5 seconds to show the full animation
 }
 

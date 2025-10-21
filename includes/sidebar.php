@@ -41,12 +41,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li> -->
 
     <!-- Category -->
-    <li class="nav-item <?= ($currentPage == 'categories.php') ? 'active' : '' ?>">
+    <!-- <li class="nav-item <?= ($currentPage == 'categories.php') ? 'active' : '' ?>">
         <a class="nav-link" href="../category/categories.php">
             <i class="fas fa-fw fa-tags"></i>
             <span>Categories</span>
         </a>
-    </li>
+    </li> -->
 
     <!-- Brand -->
     <li class="nav-item <?= ($currentPage == 'brands.php') ? 'active' : '' ?>">
@@ -65,20 +65,53 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li> 
 
     <!-- Add Sale -->
-    <li class="nav-item <?= ($currentPage == 'sales.php') ? 'active' : '' ?>">
-        <a class="nav-link" href="../sales/sales.php">
+    <li class="nav-item <?= ($currentPage == 'withdrawal_products.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../withdrawal_products/withdrawal_products.php">
             <i class="fas fa-fw fa-shopping-cart"></i>
-            <span>Record Sale</span>
+            <span>Withdrawal of Products</span>
         </a>
     </li>
 
     <!-- Sales Report -->
-    <li class="nav-item <?= ($currentPage == 'sales_report.php') ? 'active' : '' ?>">
-        <a class="nav-link" href="../sales/sales_report.php">
+    <li class="nav-item <?= ($currentPage == 'withdrawal_report.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../withdrawal_products/withdrawal_report.php">
             <i class="fas fa-fw fa-chart-line"></i>
-            <span>Sales Report</span>
+            <span>Withdrawal Report</span>
         </a>
     </li>
+
+    <!-- Installer Schedule -->
+    <li class="nav-item <?= ($currentPage == 'installer_schedule.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../installer_schedule/installer_schedule.php">
+            <i class="fas fa-fw fa-calendar-alt"></i>
+            <span>Installer Schedule</span>
+        </a>
+    </li>
+
+    <!-- Installer Schedule Report -->
+    <!-- <li class="nav-item <?= ($currentPage == 'installer_schedule_report.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../installer_schedule/installer_schedule_report.php">
+            <i class="fas fa-fw fa-chart-bar"></i>
+            <span>Schedule Report</span>
+        </a>
+    </li> -->
+
+    <!-- Installer Dashboard -->
+    <!-- <li class="nav-item <?= ($currentPage == 'installer_dashboard.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../installer_schedule/installer_dashboard.php">
+            <i class="fas fa-fw fa-calendar-alt"></i>
+            <span>Installer Dashboard</span>
+        </a>
+    </li> -->
+
+    <!-- Installer Mobile View -->
+    <!-- <li class="nav-item <?= ($currentPage == 'installer_mobile_view.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../installer_schedule/installer_mobile_view.php">
+            <i class="fas fa-fw fa-mobile-alt"></i>
+            <span>Mobile View</span>
+        </a>
+    </li> -->
+
 
     <!-- Suppliers -->
     <!--<li class="nav-item <?= ($currentPage == 'suppliers.php') ? 'active' : '' ?>">-->
