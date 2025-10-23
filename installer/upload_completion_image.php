@@ -36,10 +36,16 @@ $installer_name = $user_data['full_name'];
 
 // Get POST data
 $schedule_id = isset($_POST['schedule_id']) ? (int)$_POST['schedule_id'] : 0;
+$employee_list = isset($_POST['employee_list']) ? trim($_POST['employee_list']) : '';
 
 // Validate input
 if ($schedule_id <= 0) {
     echo json_encode(['success' => false, 'message' => 'Invalid schedule ID']);
+    exit();
+}
+
+if (empty($employee_list)) {
+    echo json_encode(['success' => false, 'message' => 'Please provide the list of installation team members']);
     exit();
 }
 
@@ -92,11 +98,11 @@ try {
     
     // Move uploaded file
     if (move_uploaded_file($file['tmp_name'], $upload_path)) {
-        // Update the schedule with completion image and status
-        $update_query = "UPDATE installer_schedules SET status = 'Completed', completion_image = ?, completed_at = NOW() WHERE id = ? AND installer_name = ?";
+        // Update the schedule with completion image, employee list, and status
+        $update_query = "UPDATE installer_schedules SET status = 'Completed', completion_image = ?, employee_list = ?, completed_at = NOW() WHERE id = ? AND installer_name = ?";
         $update_stmt = $conn->prepare($update_query);
         $relative_path = 'uploads/completion_images/' . $new_filename;
-        $update_stmt->bind_param("sis", $relative_path, $schedule_id, $installer_name);
+        $update_stmt->bind_param("ssis", $relative_path, $employee_list, $schedule_id, $installer_name);
         
         if ($update_stmt->execute()) {
             if ($update_stmt->affected_rows > 0) {

@@ -131,7 +131,38 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
                 <div class="form-group">
                     <label for="products_to_install">Products to Install *</label>
-                    <textarea class="form-control" id="products_to_install" name="products_to_install" rows="3" required placeholder="List the products that will be installed (e.g., Water Pump Model ABC-123, Pipes 2-inch diameter, etc.)"></textarea>
+                    <select class="form-control" id="products_to_install" name="products_to_install" required>
+                        <option value="">Select Product</option>
+                        <?php
+                        // Fetch products from database
+                        $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
+                                          FROM products p 
+                                          LEFT JOIN category c ON p.category_id = c.category_id 
+                                          LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                          WHERE p.quantity > 0 
+                                          ORDER BY p.product_name ASC";
+                        $products_result = mysqli_query($conn, $products_query);
+                        
+                        if ($products_result && mysqli_num_rows($products_result) > 0) {
+                            while ($product = mysqli_fetch_assoc($products_result)) {
+                                $product_display = $product['product_name'];
+                                if (!empty($product['capacity'])) {
+                                    $product_display .= " ({$product['capacity']})";
+                                }
+                                if (!empty($product['brand_name'])) {
+                                    $product_display .= " - {$product['brand_name']}";
+                                }
+                                if (!empty($product['category_name'])) {
+                                    $product_display .= " [{$product['category_name']}]";
+                                }
+                                echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                            }
+                        } else {
+                            echo "<option value=''>No products available</option>";
+                        }
+                        ?>
+                    </select>
+                    <small class="form-text text-muted">Select the product to be installed</small>
                 </div>
 
                 <div class="form-group">

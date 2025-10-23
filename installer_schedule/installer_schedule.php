@@ -110,11 +110,35 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
         /* Dashboard Header */
         .dashboard-header {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 24px;
+            padding: 32px;
+            margin-bottom: 32px;
+            box-shadow: 
+                0 20px 60px -12px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(59, 130, 246, 0.1);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
+            animation: float 20s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(20px, 20px) rotate(5deg); }
         }
 
         .header-content {
@@ -122,51 +146,103 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 16px;
+            gap: 24px;
+            position: relative;
+            z-index: 2;
         }
 
         .header-title h1 {
-            font-size: 28px;
-            font-weight: 700;
-            color: #1a202c;
-            margin-bottom: 4px;
+            font-size: 32px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.2); }
         }
 
         .header-subtitle {
-            color: #718096;
-            font-size: 14px;
+            color: #64748b;
+            font-size: 16px;
+            font-weight: 500;
         }
 
         .view-toggles {
             display: flex;
-            gap: 8px;
-            background: #f7fafc;
-            padding: 4px;
-            border-radius: 12px;
+            gap: 4px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 6px;
+            border-radius: 20px;
+            box-shadow: 
+                0 4px 20px -5px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(59, 130, 246, 0.1);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .view-toggles::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
+            pointer-events: none;
         }
 
         .view-btn {
-            padding: 10px 20px;
+            padding: 12px 24px;
             border: none;
             background: transparent;
-            color: #4a5568;
-            font-weight: 500;
+            color: #64748b;
+            font-weight: 600;
             cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s ease;
+            border-radius: 16px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            position: relative;
+            z-index: 2;
+            font-size: 14px;
+            min-width: 120px;
+            justify-content: center;
+        }
+
+        .view-btn i {
+            font-size: 16px;
+            transition: transform 0.3s ease;
         }
 
         .view-btn.active {
-            background: white;
-            color: #667eea;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 
+                0 4px 12px -2px rgba(59, 130, 246, 0.4),
+                0 0 0 1px rgba(255, 255, 255, 0.2);
+            transform: translateY(-1px);
         }
 
-        .view-btn:hover {
-            background: rgba(255,255,255,0.5);
+        .view-btn.active i {
+            transform: scale(1.1);
+        }
+
+        .view-btn:hover:not(.active) {
+            background: rgba(59, 130, 246, 0.08);
+            color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        .view-btn:hover:not(.active) i {
+            transform: scale(1.05);
         }
 
         /* Stats Cards */
@@ -178,11 +254,14 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .stat-card {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 20px;
+            padding: 28px;
+            box-shadow: 
+                0 10px 40px -10px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(59, 130, 246, 0.08);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
@@ -192,68 +271,108 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
+            width: 5px;
             height: 100%;
             background: var(--accent-color);
+            border-radius: 0 0 5px 0;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
         }
 
         .stat-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 25px 60px -10px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
+        }
+
+        .stat-card:hover::after {
+            opacity: 1;
         }
 
         .stat-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: relative;
+            z-index: 2;
         }
 
         .stat-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 12px;
+            width: 64px;
+            height: 64px;
+            border-radius: 16px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 28px;
+            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover .stat-icon {
+            transform: scale(1.1);
         }
 
         .stat-value {
-            font-size: 36px;
-            font-weight: 700;
-            color: #1a202c;
+            font-size: 40px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            line-height: 1;
         }
 
         .stat-label {
-            color: #718096;
-            font-size: 13px;
-            font-weight: 500;
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 600;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-top: 4px;
+            margin-top: 6px;
         }
 
         /* Filter Card */
         .filter-card {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 32px;
+            box-shadow: 
+                0 10px 40px -10px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(59, 130, 246, 0.08);
+            border: 2px solid rgba(59, 130, 246, 0.1);
         }
 
         .filter-card label {
-            font-weight: 600;
-            color: #2d3748;
-            margin-bottom: 8px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+            font-size: 14px;
         }
 
         /* Calendar Container */
         .calendar-container {
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 
+                0 20px 60px -12px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(59, 130, 246, 0.08);
+            border: 2px solid rgba(59, 130, 246, 0.1);
         }
 
         .calendar-nav {
@@ -272,28 +391,36 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .nav-btn {
-            padding: 10px 16px;
+            padding: 12px 20px;
             border: none;
-            background: #f7fafc;
-            border-radius: 10px;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
             cursor: pointer;
-            font-weight: 500;
-            color: #4a5568;
-            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #64748b;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
             text-decoration: none;
             display: inline-block;
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
         }
 
         .nav-btn:hover {
-            background: #667eea;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
             text-decoration: none;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.4);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .month-title {
-            font-size: 22px;
-            font-weight: 600;
-            color: #1a202c;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             min-width: 200px;
             text-align: center;
         }
@@ -306,44 +433,90 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
         .day-header {
             text-align: center;
-            padding: 12px;
-            font-weight: 600;
-            color: #4a5568;
+            padding: 16px 12px;
+            font-weight: 700;
+            color: #2d3748;
             font-size: 14px;
-            background: #f7fafc;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .calendar-day {
-            background: #f7fafc;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 12px;
-            min-height: 130px;
+            min-height: 140px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-day.empty-day {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            cursor: default;
+            opacity: 0.3;
+        }
+
+        .calendar-day.empty-day:hover {
+            transform: none;
+            box-shadow: none;
+            background: #f8fafc;
         }
 
         .calendar-day:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            background: #edf2f7;
+            background: #f8fafc;
+            border-color: #cbd5e0;
+        }
+
+        .day-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .day-number {
-            font-weight: 600;
+            font-weight: 700;
             color: #2d3748;
-            margin-bottom: 8px;
-            font-size: 16px;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .day-name {
+            font-weight: 500;
+            color: #718096;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .calendar-day.today {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-color: #5a67d8;
         }
 
         .calendar-day.today .day-number {
             color: white;
+        }
+
+        .calendar-day.today .day-name {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .calendar-day.today .day-info {
+            border-bottom-color: rgba(255, 255, 255, 0.2);
         }
 
         .calendar-day.today:hover {
@@ -369,137 +542,173 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .schedule-count {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #667eea;
-            color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
+            background: #e2e8f0;
+            color: #4a5568;
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 10px;
             font-weight: 600;
+            text-align: center;
+            margin-top: auto;
+            align-self: center;
         }
 
         .calendar-day.today .schedule-count {
             background: rgba(255,255,255,0.3);
+            color: white;
         }
 
-        /* Kanban View */
+        /* Modern Card Grid Layout */
         .kanban-container {
             display: none;
-            gap: 20px;
-            overflow-x: auto;
-            padding-bottom: 20px;
-        }
-
-        .kanban-container::-webkit-scrollbar {
-            height: 8px;
-        }
-
-        .kanban-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 10px;
-        }
-
-        .kanban-container::-webkit-scrollbar-thumb {
-            background: #667eea;
-            border-radius: 10px;
+            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+            gap: 24px;
+            padding: 24px 0;
         }
 
         .kanban-column {
-            background: white;
-            border-radius: 16px;
-            padding: 20px;
-            min-width: 320px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-            flex-shrink: 0;
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 
+                0 10px 40px -10px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(59, 130, 246, 0.08);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kanban-column::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: var(--accent-color);
+            border-radius: 24px 24px 0 0;
+        }
+
+        .kanban-column:hover {
+            transform: translateY(-8px);
+            box-shadow: 
+                0 25px 60px -10px rgba(0, 0, 0, 0.15),
+                0 0 0 1px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .column-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid rgba(226, 232, 240, 0.5);
+            position: relative;
         }
 
         .column-title {
-            font-weight: 600;
-            font-size: 16px;
-            color: #2d3748;
+            font-weight: 700;
+            font-size: 18px;
+            color: #1e293b;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
+        }
+
+        .column-title i {
+            font-size: 20px;
+            color: var(--accent-color);
         }
 
         .column-count {
-            background: #e2e8f0;
-            color: #4a5568;
-            border-radius: 50%;
-            width: 28px;
-            height: 28px;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            border-radius: 20px;
+            padding: 6px 16px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 13px;
-            font-weight: 600;
+            font-weight: 700;
+            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
         }
 
         .kanban-cards {
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            gap: 16px;
             min-height: 200px;
         }
 
         .kanban-card {
-            background: #f7fafc;
-            border-radius: 12px;
-            padding: 16px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 16px;
+            padding: 20px;
             cursor: move;
-            transition: all 0.3s ease;
-            border-left: 4px solid;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .kanban-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-color);
+            border-radius: 0 0 4px 0;
         }
 
         .kanban-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .kanban-card.dragging {
             opacity: 0.5;
+            transform: rotate(5deg);
         }
 
         .card-title {
-            font-weight: 600;
-            color: #1a202c;
-            margin-bottom: 8px;
-            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+            font-size: 16px;
+            line-height: 1.4;
         }
 
         .card-detail {
-            color: #4a5568;
-            font-size: 13px;
-            margin-bottom: 6px;
+            color: #64748b;
+            font-size: 14px;
+            margin-bottom: 8px;
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .card-detail i {
+            color: var(--accent-color);
+            width: 16px;
         }
 
         .installer-badge {
-            background: #667eea;
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
-            padding: 4px 10px;
-            border-radius: 12px;
-            font-size: 11px;
-            font-weight: 500;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 12px;
+            font-weight: 600;
             display: inline-flex;
             align-items: center;
+            box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.4);
             gap: 4px;
             margin-top: 8px;
         }
@@ -540,60 +749,85 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             background: #cbd5e0;
         }
 
-        /* List View */
+        /* Modern List View */
         .list-container {
             display: none;
-            background: white;
-            border-radius: 16px;
-            padding: 24px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 
+                0 20px 60px -12px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(59, 130, 246, 0.08);
+            border: 2px solid rgba(59, 130, 246, 0.1);
         }
 
         .list-group {
-            margin-bottom: 24px;
+            margin-bottom: 32px;
         }
 
         .list-date {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 18px;
-            margin-bottom: 12px;
-            padding-bottom: 8px;
-            border-bottom: 2px solid #e2e8f0;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 20px;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid rgba(59, 130, 246, 0.2);
             display: flex;
             align-items: center;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             gap: 8px;
         }
 
         .list-item {
-            background: #f7fafc;
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 12px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            padding: 24px;
+            margin-bottom: 16px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            transition: all 0.3s ease;
-            border-left: 4px solid;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border: 2px solid rgba(59, 130, 246, 0.1);
+            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+            position: relative;
+            overflow: hidden;
             flex-wrap: wrap;
-            gap: 12px;
+            gap: 16px;
+        }
+
+        .list-item::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 5px;
+            height: 100%;
+            background: var(--accent-color);
+            border-radius: 0 0 5px 0;
         }
 
         .list-item:hover {
-            transform: translateX(4px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .list-info {
             flex: 1;
             min-width: 300px;
+            position: relative;
+            z-index: 2;
         }
 
         .list-customer {
-            font-weight: 600;
-            color: #1a202c;
-            margin-bottom: 8px;
-            font-size: 16px;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 12px;
+            font-size: 18px;
+            line-height: 1.4;
         }
 
         .list-details {
@@ -661,11 +895,19 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
             .view-toggles {
                 width: 100%;
+                padding: 4px;
             }
 
             .view-btn {
                 flex: 1;
                 justify-content: center;
+                padding: 10px 16px;
+                font-size: 13px;
+                min-width: auto;
+            }
+
+            .view-btn i {
+                font-size: 14px;
             }
 
             .calendar-day {
@@ -675,14 +917,31 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             .list-item {
                 flex-direction: column;
                 align-items: flex-start;
+                padding: 20px;
             }
 
             .list-info {
                 min-width: 100%;
+                margin-bottom: 16px;
             }
 
             .card-actions {
                 width: 100%;
+            }
+
+            .kanban-container {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                padding: 16px 0;
+            }
+
+            .kanban-column {
+                min-width: 100%;
+                padding: 20px;
+            }
+
+            .kanban-card {
+                padding: 16px;
             }
         }
 
@@ -972,25 +1231,37 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         </div>
 
                         <div class="calendar-grid">
-                            <div class="day-header">Sun</div>
-                            <div class="day-header">Mon</div>
-                            <div class="day-header">Tue</div>
-                            <div class="day-header">Wed</div>
-                            <div class="day-header">Thu</div>
-                            <div class="day-header">Fri</div>
-                            <div class="day-header">Sat</div>
+                            <div class="day-header">Sunday</div>
+                            <div class="day-header">Monday</div>
+                            <div class="day-header">Tuesday</div>
+                            <div class="day-header">Wednesday</div>
+                            <div class="day-header">Thursday</div>
+                            <div class="day-header">Friday</div>
+                            <div class="day-header">Saturday</div>
 
                             <?php
                             $days_in_month = date('t', mktime(0, 0, 0, $current_month, 1, $current_year));
+                            $first_day_of_month = date('w', mktime(0, 0, 0, $current_month, 1, $current_year)); // 0 = Sunday, 1 = Monday, etc.
                             
+                            // Add empty cells for days before the first day of the month
+                            for ($i = 0; $i < $first_day_of_month; $i++) {
+                                echo '<div class="calendar-day empty-day"></div>';
+                            }
+                            
+                            // Add days of the month
                             for ($day = 1; $day <= $days_in_month; $day++) {
                                 $current_date = sprintf('%04d-%02d-%02d', $current_year, $current_month, $day);
                                 $has_schedules = isset($schedules_by_date[$current_date]);
                                 $schedules_count = $has_schedules ? count($schedules_by_date[$current_date]) : 0;
                                 $is_today = ($current_date == date('Y-m-d'));
+                                $day_name = date('l', strtotime($current_date)); // Full day name
+                                $day_abbr = date('D', strtotime($current_date)); // Abbreviated day name
                                 
                                 echo '<div class="calendar-day ' . ($is_today ? 'today' : '') . '" data-date="' . $current_date . '">';
+                                echo '<div class="day-info">';
                                 echo '<div class="day-number">' . $day . '</div>';
+                                echo '<div class="day-name">' . $day_abbr . '</div>';
+                                echo '</div>';
                                 
                                 if ($has_schedules) {
                                     $display_count = min(3, $schedules_count);
@@ -1157,6 +1428,20 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             echo '</div>';
                                         }
                                         
+                                        // Show employee list if available
+                                        if (!empty($schedule['employee_list'])) {
+                                            echo '<div class="employee-list-preview mt-2">';
+                                            echo '<small class="text-muted"><i class="fas fa-users"></i> Team:</small><br>';
+                                            $employees = preg_split('/[,\n\r]+/', $schedule['employee_list']);
+                                            foreach($employees as $employee) {
+                                                $employee = trim($employee);
+                                                if (!empty($employee)) {
+                                                    echo '<span class="badge badge-light mr-1 mb-1">' . htmlspecialchars($employee) . '</span>';
+                                                }
+                                            }
+                                            echo '</div>';
+                                        }
+                                        
                                         // Show completion date if available
                                         if (!empty($schedule['completed_at'])) {
                                             echo '<div class="card-detail mt-2"><i class="fas fa-check-circle text-success"></i> Completed: ' . date('M d, Y g:i A', strtotime($schedule['completed_at'])) . '</div>';
@@ -1216,6 +1501,21 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                         echo '<img src="../' . htmlspecialchars($schedule['completion_image']) . '" alt="Completion Image" class="completion-thumbnail-large" onclick="viewCompletionImage(\'' . htmlspecialchars($schedule['completion_image']) . '\')">';
                                         echo '<p class="small text-muted mt-1"><i class="fas fa-camera"></i> Completion Photo</p>';
                                     }
+                                    
+                                    // Show employee list if available
+                                    if (!empty($schedule['employee_list'])) {
+                                        echo '<div class="employee-list-section mt-2">';
+                                        echo '<p class="small text-muted mb-1"><i class="fas fa-users"></i> Installation Team:</p>';
+                                        $employees = preg_split('/[,\n\r]+/', $schedule['employee_list']);
+                                        foreach($employees as $employee) {
+                                            $employee = trim($employee);
+                                            if (!empty($employee)) {
+                                                echo '<span class="badge badge-secondary mr-1 mb-1">' . htmlspecialchars($employee) . '</span>';
+                                            }
+                                        }
+                                        echo '</div>';
+                                    }
+                                    
                                     echo '<button class="btn btn-primary btn-sm edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View Details</button>';
                                     echo '</div>';
                                     echo '</div>';
@@ -1427,7 +1727,38 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
                     <div class="form-group">
                         <label for="products_to_install">Products to Install *</label>
-                        <textarea class="form-control" id="products_to_install" name="products_to_install" rows="3" required placeholder="List the products that will be installed"></textarea>
+                        <select class="form-control" id="products_to_install" name="products_to_install" required>
+                            <option value="">Select Product</option>
+                            <?php
+                            // Fetch products from database
+                            $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
+                                              FROM products p 
+                                              LEFT JOIN category c ON p.category_id = c.category_id 
+                                              LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                              WHERE p.quantity > 0 
+                                              ORDER BY p.product_name ASC";
+                            $products_result = mysqli_query($conn, $products_query);
+                            
+                            if ($products_result && mysqli_num_rows($products_result) > 0) {
+                                while ($product = mysqli_fetch_assoc($products_result)) {
+                                    $product_display = $product['product_name'];
+                                    if (!empty($product['capacity'])) {
+                                        $product_display .= " ({$product['capacity']})";
+                                    }
+                                    if (!empty($product['brand_name'])) {
+                                        $product_display .= " - {$product['brand_name']}";
+                                    }
+                                    if (!empty($product['category_name'])) {
+                                        $product_display .= " [{$product['category_name']}]";
+                                    }
+                                    echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                }
+                            } else {
+                                echo "<option value=''>No products available</option>";
+                            }
+                            ?>
+                        </select>
+                        <small class="form-text text-muted">Select the product to be installed</small>
                     </div>
 
                     <div class="form-group">
@@ -1557,7 +1888,38 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
                     <div class="form-group">
                         <label for="edit_products_to_install">Products to Install *</label>
-                        <textarea class="form-control" id="edit_products_to_install" name="products_to_install" rows="3" required></textarea>
+                        <select class="form-control" id="edit_products_to_install" name="products_to_install" required>
+                            <option value="">Select Product</option>
+                            <?php
+                            // Fetch products from database
+                            $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
+                                              FROM products p 
+                                              LEFT JOIN category c ON p.category_id = c.category_id 
+                                              LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                              WHERE p.quantity > 0 
+                                              ORDER BY p.product_name ASC";
+                            $products_result = mysqli_query($conn, $products_query);
+                            
+                            if ($products_result && mysqli_num_rows($products_result) > 0) {
+                                while ($product = mysqli_fetch_assoc($products_result)) {
+                                    $product_display = $product['product_name'];
+                                    if (!empty($product['capacity'])) {
+                                        $product_display .= " ({$product['capacity']})";
+                                    }
+                                    if (!empty($product['brand_name'])) {
+                                        $product_display .= " - {$product['brand_name']}";
+                                    }
+                                    if (!empty($product['category_name'])) {
+                                        $product_display .= " [{$product['category_name']}]";
+                                    }
+                                    echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                }
+                            } else {
+                                echo "<option value=''>No products available</option>";
+                            }
+                            ?>
+                        </select>
+                        <small class="form-text text-muted">Select the product to be installed</small>
                     </div>
 
                     <div class="form-group">
@@ -1571,6 +1933,15 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         <div class="completion-image-display">
                             <img id="edit_completion_image" src="" alt="Completion Image" class="img-fluid rounded" style="max-height: 300px; cursor: pointer;" onclick="viewCompletionImageFromModal()">
                             <p class="text-muted mt-2"><i class="fas fa-camera"></i> Click image to view full size</p>
+                        </div>
+                    </div>
+
+                    <!-- Employee List Display -->
+                    <div id="employee_list_section" class="form-group" style="display: none;">
+                        <label>Installation Team</label>
+                        <div class="employee-list-display">
+                            <div id="edit_employee_list" class="employee-badges"></div>
+                            <p class="text-muted mt-2"><i class="fas fa-users"></i> Team members who worked on this installation</p>
                         </div>
                     </div>
 
@@ -1693,6 +2064,22 @@ $(document).ready(function() {
                         $('#completion_image_section').show();
                     } else {
                         $('#completion_image_section').hide();
+                    }
+                    
+                    // Handle employee list
+                    if (response.data.status === 'Completed' && response.data.employee_list) {
+                        const employees = response.data.employee_list.split(/[,\n\r]+/);
+                        let employeeBadges = '';
+                        employees.forEach(function(employee) {
+                            employee = employee.trim();
+                            if (employee) {
+                                employeeBadges += '<span class="badge badge-secondary mr-1 mb-1">' + employee + '</span>';
+                            }
+                        });
+                        $('#edit_employee_list').html(employeeBadges);
+                        $('#employee_list_section').show();
+                    } else {
+                        $('#employee_list_section').hide();
                     }
                     
                     if (response.data.status === 'Completed' && response.data.completed_at) {

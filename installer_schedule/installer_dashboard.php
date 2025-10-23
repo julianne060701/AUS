@@ -284,44 +284,90 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
         .day-header {
             text-align: center;
-            padding: 12px;
-            font-weight: 600;
-            color: #4a5568;
+            padding: 16px 12px;
+            font-weight: 700;
+            color: #2d3748;
             font-size: 14px;
-            background: #f7fafc;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
             border-radius: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .calendar-day {
-            background: #f7fafc;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
             border-radius: 12px;
             padding: 12px;
-            min-height: 130px;
+            min-height: 140px;
             cursor: pointer;
             transition: all 0.3s ease;
             position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .calendar-day.empty-day {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            cursor: default;
+            opacity: 0.3;
+        }
+
+        .calendar-day.empty-day:hover {
+            transform: none;
+            box-shadow: none;
+            background: #f8fafc;
         }
 
         .calendar-day:hover {
-            transform: translateY(-4px);
+            transform: translateY(-2px);
             box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            background: #edf2f7;
+            background: #f8fafc;
+            border-color: #cbd5e0;
+        }
+
+        .day-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
         }
 
         .day-number {
-            font-weight: 600;
+            font-weight: 700;
             color: #2d3748;
-            margin-bottom: 8px;
-            font-size: 16px;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .day-name {
+            font-weight: 500;
+            color: #718096;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .calendar-day.today {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
+            border-color: #5a67d8;
         }
 
         .calendar-day.today .day-number {
             color: white;
+        }
+
+        .calendar-day.today .day-name {
+            color: rgba(255, 255, 255, 0.8);
+        }
+
+        .calendar-day.today .day-info {
+            border-bottom-color: rgba(255, 255, 255, 0.2);
         }
 
         .calendar-day.today:hover {
@@ -347,23 +393,20 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .schedule-count {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #667eea;
-            color: white;
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
+            background: #e2e8f0;
+            color: #4a5568;
+            border-radius: 12px;
+            padding: 4px 8px;
+            font-size: 10px;
             font-weight: 600;
+            text-align: center;
+            margin-top: auto;
+            align-self: center;
         }
 
         .calendar-day.today .schedule-count {
             background: rgba(255,255,255,0.3);
+            color: white;
         }
 
         /* Kanban View */
@@ -844,25 +887,37 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         </div>
 
                         <div class="calendar-grid">
-                            <div class="day-header">Sun</div>
-                            <div class="day-header">Mon</div>
-                            <div class="day-header">Tue</div>
-                            <div class="day-header">Wed</div>
-                            <div class="day-header">Thu</div>
-                            <div class="day-header">Fri</div>
-                            <div class="day-header">Sat</div>
+                            <div class="day-header">Sunday</div>
+                            <div class="day-header">Monday</div>
+                            <div class="day-header">Tuesday</div>
+                            <div class="day-header">Wednesday</div>
+                            <div class="day-header">Thursday</div>
+                            <div class="day-header">Friday</div>
+                            <div class="day-header">Saturday</div>
 
                             <?php
                             $days_in_month = date('t', mktime(0, 0, 0, $current_month, 1, $current_year));
+                            $first_day_of_month = date('w', mktime(0, 0, 0, $current_month, 1, $current_year)); // 0 = Sunday, 1 = Monday, etc.
                             
+                            // Add empty cells for days before the first day of the month
+                            for ($i = 0; $i < $first_day_of_month; $i++) {
+                                echo '<div class="calendar-day empty-day"></div>';
+                            }
+                            
+                            // Add days of the month
                             for ($day = 1; $day <= $days_in_month; $day++) {
                                 $current_date = sprintf('%04d-%02d-%02d', $current_year, $current_month, $day);
                                 $has_schedules = isset($schedules_by_date[$current_date]);
                                 $schedules_count = $has_schedules ? count($schedules_by_date[$current_date]) : 0;
                                 $is_today = ($current_date == date('Y-m-d'));
+                                $day_name = date('l', strtotime($current_date)); // Full day name
+                                $day_abbr = date('D', strtotime($current_date)); // Abbreviated day name
                                 
                                 echo '<div class="calendar-day ' . ($is_today ? 'today' : '') . '" data-date="' . $current_date . '">';
+                                echo '<div class="day-info">';
                                 echo '<div class="day-number">' . $day . '</div>';
+                                echo '<div class="day-name">' . $day_abbr . '</div>';
+                                echo '</div>';
                                 
                                 if ($has_schedules) {
                                     $display_count = min(3, $schedules_count);
