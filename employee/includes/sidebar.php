@@ -28,7 +28,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <li class="nav-item <?= ($currentPage == 'inventory.php') ? 'active' : '' ?>">
         <a class="nav-link" href="inventory.php">
             <i class="fas fa-fw fa-boxes"></i>
-            <span>Product Inventory</span>
+            <span>Stock Entry</span>
         </a>
     </li>
 

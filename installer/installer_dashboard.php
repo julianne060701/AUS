@@ -92,11 +92,11 @@ foreach ($schedules as $schedule) {
         }
 
         body {
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 25%, #fef3c7 75%, #fed7aa 100%);
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%, #f8fafc 100%);
             min-height: 100vh;
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             line-height: 1.6;
-            color: #1e293b;
+            color: #475569;
             position: relative;
         }
 
@@ -133,18 +133,17 @@ foreach ($schedules as $schedule) {
             padding: 2rem;
         }
 
-        /* Header Section */
+        /* Modern Header Section */
         .dashboard-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            color: #1e293b;
-            padding: 4rem 3rem;
-            border-radius: 32px;
-            margin-bottom: 4rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            color: #334155;
+            padding: 3rem 2.5rem;
+            border-radius: 24px;
+            margin-bottom: 3rem;
             box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(59, 130, 246, 0.1),
-                inset 0 1px 0 rgba(255, 255, 255, 1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+                0 10px 40px -10px rgba(0, 0, 0, 0.1),
+                0 0 0 1px rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             position: relative;
             overflow: hidden;
         }
@@ -192,16 +191,16 @@ foreach ($schedules as $schedule) {
         }
 
         .header-title {
-            font-size: 4rem;
-            font-weight: 900;
+            font-size: 3rem;
+            font-weight: 800;
             margin-bottom: 1rem;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
+            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #6366f1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
             position: relative;
             z-index: 2;
-            animation: shimmer 3s ease-in-out infinite;
+            animation: shimmer 4s ease-in-out infinite;
         }
 
         @keyframes shimmer {
@@ -226,14 +225,14 @@ foreach ($schedules as $schedule) {
 
         .header-stat {
             text-align: center;
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            padding: 2rem 1.5rem;
-            border-radius: 24px;
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+            padding: 1.5rem 1.25rem;
+            border-radius: 20px;
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
-            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+            box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
         }
 
         .header-stat::before {
@@ -249,10 +248,10 @@ foreach ($schedules as $schedule) {
         }
 
         .header-stat:hover {
-            transform: translateY(-8px) scale(1.03);
-            background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%);
-            box-shadow: 0 20px 40px -10px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
+            transform: translateY(-4px) scale(1.02);
+            background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
+            box-shadow: 0 8px 30px -4px rgba(14, 165, 233, 0.2);
+            border-color: rgba(14, 165, 233, 0.3);
         }
 
         .header-stat:hover::before {
@@ -260,9 +259,9 @@ foreach ($schedules as $schedule) {
         }
 
         .header-stat-number {
-            font-size: 3rem;
-            font-weight: 900;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0ea5e9 0%, #3b82f6 50%, #6366f1 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
@@ -306,7 +305,7 @@ foreach ($schedules as $schedule) {
         .section-title {
             font-size: 1.5rem;
             font-weight: 700;
-            color: #1e293b;
+            color: #374151;
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -338,14 +337,14 @@ foreach ($schedules as $schedule) {
 
         /* Schedule Cards */
         .schedule-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
             padding: 0;
             box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+                0 4px 20px -4px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             overflow: hidden;
         }
@@ -366,11 +365,11 @@ foreach ($schedules as $schedule) {
         .schedule-card.cancelled::before { background: linear-gradient(90deg, #ef4444 0%, #f87171 100%); }
 
         .schedule-card:hover {
-            transform: translateY(-12px) scale(1.02);
+            transform: translateY(-6px) scale(1.01);
             box-shadow: 
-                0 25px 60px -10px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
+                0 8px 30px -4px rgba(0, 0, 0, 0.12),
+                0 0 0 1px rgba(14, 165, 233, 0.2);
+            border-color: rgba(14, 165, 233, 0.3);
         }
 
         .schedule-card::after {
@@ -393,8 +392,8 @@ foreach ($schedules as $schedule) {
         /* Card Header with Date */
         .card-header {
             background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 2rem;
-            border-bottom: 2px solid rgba(226, 232, 240, 0.5);
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
             position: relative;
         }
 
@@ -474,7 +473,7 @@ foreach ($schedules as $schedule) {
         .customer-name {
             font-size: 1.25rem;
             font-weight: 700;
-            color: #1e293b;
+            color: #374151;
             margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
@@ -751,13 +750,13 @@ foreach ($schedules as $schedule) {
         /* Section Tabs */
         .section-tabs {
             display: flex;
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            margin-bottom: 2rem;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            margin-bottom: 1.5rem;
             box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+                0 4px 20px -4px rgba(0, 0, 0, 0.08),
+                0 0 0 1px rgba(148, 163, 184, 0.1);
+            border: 1px solid rgba(148, 163, 184, 0.2);
             overflow: hidden;
             padding: 0.5rem;
         }
@@ -1230,49 +1229,7 @@ foreach ($schedules as $schedule) {
             }
         }
 
-        /* Dark mode support */
-        @media (prefers-color-scheme: dark) {
-            body {
-                background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
-            }
-
-            .dashboard-header {
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
-                color: #f1f5f9;
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-            
-            .sliding-container {
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-            
-            .schedule-card {
-                background: linear-gradient(135deg, rgba(51, 65, 85, 0.95) 0%, rgba(71, 85, 105, 0.9) 100%);
-                color: #f1f5f9;
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-
-            .card-header {
-                background: linear-gradient(135deg, rgba(71, 85, 105, 0.5) 0%, rgba(51, 65, 85, 0.5) 100%);
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-
-            .section-tabs {
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-
-            .pagination-container {
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-
-            .empty-state {
-                background: linear-gradient(135deg, rgba(30, 41, 59, 0.95) 0%, rgba(51, 65, 85, 0.9) 100%);
-                border-color: rgba(255, 255, 255, 0.1);
-            }
-        }
+        /* Light mode only - no dark themes */
     </style>
 </head>
 

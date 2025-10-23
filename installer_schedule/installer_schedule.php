@@ -110,35 +110,11 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
         /* Dashboard Header */
         .dashboard-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(59, 130, 246, 0.1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
-            animation: float 20s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(20px, 20px) rotate(5deg); }
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
 
         .header-content {
@@ -146,103 +122,51 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             justify-content: space-between;
             align-items: center;
             flex-wrap: wrap;
-            gap: 24px;
-            position: relative;
-            z-index: 2;
+            gap: 16px;
         }
 
         .header-title h1 {
-            font-size: 32px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-
-        @keyframes shimmer {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(1.2); }
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 4px;
         }
 
         .header-subtitle {
-            color: #64748b;
-            font-size: 16px;
-            font-weight: 500;
+            color: #718096;
+            font-size: 14px;
         }
 
         .view-toggles {
             display: flex;
-            gap: 4px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 6px;
-            border-radius: 20px;
-            box-shadow: 
-                0 4px 20px -5px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(59, 130, 246, 0.1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .view-toggles::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
-            pointer-events: none;
+            gap: 8px;
+            background: #f7fafc;
+            padding: 4px;
+            border-radius: 12px;
         }
 
         .view-btn {
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
             background: transparent;
-            color: #64748b;
-            font-weight: 600;
+            color: #4a5568;
+            font-weight: 500;
             cursor: pointer;
-            border-radius: 16px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 8px;
+            transition: all 0.3s ease;
             display: flex;
             align-items: center;
-            gap: 10px;
-            position: relative;
-            z-index: 2;
-            font-size: 14px;
-            min-width: 120px;
-            justify-content: center;
-        }
-
-        .view-btn i {
-            font-size: 16px;
-            transition: transform 0.3s ease;
+            gap: 8px;
         }
 
         .view-btn.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            box-shadow: 
-                0 4px 12px -2px rgba(59, 130, 246, 0.4),
-                0 0 0 1px rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
+            background: white;
+            color: #667eea;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
-        .view-btn.active i {
-            transform: scale(1.1);
-        }
-
-        .view-btn:hover:not(.active) {
-            background: rgba(59, 130, 246, 0.08);
-            color: #3b82f6;
-            transform: translateY(-1px);
-        }
-
-        .view-btn:hover:not(.active) i {
-            transform: scale(1.05);
+        .view-btn:hover {
+            background: rgba(255,255,255,0.5);
         }
 
         /* Stats Cards */
@@ -254,14 +178,11 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .stat-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 20px;
-            padding: 28px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
             position: relative;
             overflow: hidden;
         }
@@ -271,108 +192,68 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             position: absolute;
             top: 0;
             left: 0;
-            width: 5px;
+            width: 4px;
             height: 100%;
             background: var(--accent-color);
-            border-radius: 0 0 5px 0;
-        }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
         }
 
         .stat-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 
-                0 25px 60px -10px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .stat-card:hover::after {
-            opacity: 1;
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
         }
 
         .stat-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: relative;
-            z-index: 2;
         }
 
         .stat-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover .stat-icon {
-            transform: scale(1.1);
+            font-size: 24px;
         }
 
         .stat-value {
-            font-size: 40px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
+            font-size: 36px;
+            font-weight: 700;
+            color: #1a202c;
         }
 
         .stat-label {
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 600;
+            color: #718096;
+            font-size: 13px;
+            font-weight: 500;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-top: 6px;
+            margin-top: 4px;
         }
 
         /* Filter Card */
         .filter-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 32px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.08);
         }
 
         .filter-card label {
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 14px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 8px;
         }
 
         /* Calendar Container */
         .calendar-container {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
         }
 
         .calendar-nav {
@@ -391,36 +272,28 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         }
 
         .nav-btn {
-            padding: 12px 20px;
+            padding: 10px 16px;
             border: none;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 16px;
+            background: #f7fafc;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 600;
-            color: #64748b;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            font-weight: 500;
+            color: #4a5568;
+            transition: all 0.3s ease;
             text-decoration: none;
             display: inline-block;
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
         }
 
         .nav-btn:hover {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            background: #667eea;
             color: white;
             text-decoration: none;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.4);
-            border-color: rgba(59, 130, 246, 0.3);
         }
 
         .month-title {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
+            font-size: 22px;
+            font-weight: 600;
+            color: #1a202c;
             min-width: 200px;
             text-align: center;
         }
@@ -558,54 +431,63 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             color: white;
         }
 
-        /* Modern Card Grid Layout */
+        /* Modern Timeline Layout */
         .kanban-container {
             display: none;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 24px;
-            padding: 24px 0;
-        }
-
-        .kanban-column {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 28px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
+            flex-direction: column;
+            gap: 0;
+            padding: 0;
+            background: #f8fafc;
+            border-radius: 20px;
             overflow: hidden;
         }
 
-        .kanban-column::before {
+        .kanban-column {
+            background: #ffffff;
+            border-radius: 0;
+            padding: 0;
+            box-shadow: none;
+            border: none;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: visible;
+            margin-bottom: 0;
+        }
+
+        .kanban-column:not(:last-child)::after {
             content: '';
             position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: var(--accent-color);
-            border-radius: 24px 24px 0 0;
+            bottom: 0;
+            left: 20px;
+            right: 20px;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, #e2e8f0 50%, transparent 100%);
         }
 
         .kanban-column:hover {
-            transform: translateY(-8px);
-            box-shadow: 
-                0 25px 60px -10px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
+            transform: none;
+            box-shadow: none;
+            border-color: transparent;
         }
 
         .column-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid rgba(226, 232, 240, 0.5);
+            padding: 24px 32px;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            border-bottom: 1px solid #e2e8f0;
             position: relative;
+        }
+
+        .column-header::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background: var(--accent-color);
         }
 
         .column-title {
@@ -626,29 +508,27 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
             border-radius: 20px;
-            padding: 6px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
+            padding: 8px 16px;
+            font-size: 14px;
             font-weight: 700;
             box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
         }
 
         .kanban-cards {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            min-height: 200px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 32px;
+            background: #ffffff;
         }
 
         .kanban-card {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
             border-radius: 16px;
-            padding: 20px;
+            padding: 24px;
             cursor: move;
             transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+            border: 2px solid #e2e8f0;
             box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
             position: relative;
             overflow: hidden;
@@ -659,10 +539,10 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             position: absolute;
             top: 0;
             left: 0;
-            width: 4px;
-            height: 100%;
+            right: 0;
+            height: 3px;
             background: var(--accent-color);
-            border-radius: 0 0 4px 0;
+            border-radius: 16px 16px 0 0;
         }
 
         .kanban-card:hover {
@@ -673,44 +553,45 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
         .kanban-card.dragging {
             opacity: 0.5;
-            transform: rotate(5deg);
+            transform: rotate(2deg);
         }
 
         .card-title {
             font-weight: 700;
             color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 16px;
+            margin-bottom: 16px;
+            font-size: 18px;
             line-height: 1.4;
         }
 
         .card-detail {
             color: #64748b;
             font-size: 14px;
-            margin-bottom: 8px;
+            margin-bottom: 12px;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             font-weight: 500;
         }
 
         .card-detail i {
             color: var(--accent-color);
-            width: 16px;
+            width: 18px;
+            font-size: 16px;
         }
 
         .installer-badge {
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 13px;
             font-weight: 600;
             display: inline-flex;
             align-items: center;
+            gap: 6px;
+            margin-top: 12px;
             box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.4);
-            gap: 4px;
-            margin-top: 8px;
         }
 
         .card-actions {
@@ -749,99 +630,106 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             background: #cbd5e0;
         }
 
-        /* Modern List View */
+        /* Modern Gallery Layout */
         .list-container {
             display: none;
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
+            background: #f8fafc;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .list-group {
-            margin-bottom: 32px;
+            margin-bottom: 0;
         }
 
         .list-date {
             font-weight: 700;
             color: #1e293b;
             font-size: 20px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 3px solid rgba(59, 130, 246, 0.2);
+            margin-bottom: 0;
+            padding: 24px 32px;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            color: white;
             display: flex;
             align-items: center;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            gap: 8px;
+            gap: 12px;
+            position: relative;
+        }
+
+        .list-date::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.3) 50%, transparent 100%);
         }
 
         .list-item {
             background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+            border-radius: 0;
+            padding: 32px;
+            margin-bottom: 0;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 24px;
+            transition: all 0.3s ease;
+            border: none;
+            border-bottom: 1px solid #e2e8f0;
             position: relative;
-            overflow: hidden;
-            flex-wrap: wrap;
-            gap: 16px;
         }
 
         .list-item::before {
             content: '';
             position: absolute;
-            top: 0;
             left: 0;
-            width: 5px;
-            height: 100%;
+            top: 0;
+            bottom: 0;
+            width: 4px;
             background: var(--accent-color);
-            border-radius: 0 0 5px 0;
         }
 
         .list-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
-            border-color: rgba(59, 130, 246, 0.3);
+            transform: none;
+            box-shadow: none;
+            background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
         }
 
         .list-info {
             flex: 1;
-            min-width: 300px;
-            position: relative;
-            z-index: 2;
+            min-width: auto;
         }
 
         .list-customer {
             font-weight: 700;
             color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 18px;
+            margin-bottom: 16px;
+            font-size: 20px;
             line-height: 1.4;
         }
 
         .list-details {
-            display: flex;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
-            flex-wrap: wrap;
         }
 
         .list-detail {
-            color: #4a5568;
-            font-size: 13px;
+            color: #64748b;
+            font-size: 14px;
             display: flex;
             align-items: center;
-            gap: 4px;
+            gap: 8px;
+            font-weight: 500;
+        }
+
+        .list-detail i {
+            color: var(--accent-color);
+            width: 18px;
+            font-size: 16px;
         }
 
         /* Animations */
@@ -895,19 +783,11 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
             .view-toggles {
                 width: 100%;
-                padding: 4px;
             }
 
             .view-btn {
                 flex: 1;
                 justify-content: center;
-                padding: 10px 16px;
-                font-size: 13px;
-                min-width: auto;
-            }
-
-            .view-btn i {
-                font-size: 14px;
             }
 
             .calendar-day {
@@ -915,33 +795,41 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             }
 
             .list-item {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 20px;
+                grid-template-columns: 1fr;
+                gap: 16px;
+                padding: 24px 20px;
             }
 
             .list-info {
                 min-width: 100%;
-                margin-bottom: 16px;
             }
 
-            .card-actions {
-                width: 100%;
+            .list-details {
+                grid-template-columns: 1fr;
+                gap: 12px;
             }
 
-            .kanban-container {
+            .list-date {
+                padding: 20px;
+                font-size: 18px;
+            }
+
+            .kanban-cards {
                 grid-template-columns: 1fr;
                 gap: 16px;
-                padding: 16px 0;
-            }
-
-            .kanban-column {
-                min-width: 100%;
                 padding: 20px;
             }
 
             .kanban-card {
-                padding: 16px;
+                padding: 20px;
+            }
+
+            .column-header {
+                padding: 20px;
+            }
+
+            .card-actions {
+                width: 100%;
             }
         }
 
