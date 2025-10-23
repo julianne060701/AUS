@@ -30,3 +30,4 @@ if (isset($_GET['id'])) {
     echo json_encode(['success' => false, 'message' => 'Schedule ID is required.']);
 }
 ?>
+
