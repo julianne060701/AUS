@@ -40,13 +40,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </li>
 
-    <!-- Low Stock Alerts -->
-    <!-- <li class="nav-item <?= ($currentPage == 'low_stock.php') ? 'active' : '' ?>">
-        <a class="nav-link" href="low_stock.php">
-            <i class="fas fa-fw fa-exclamation-triangle"></i>
-            <span>Low Stock Alerts</span>
+    <!-- installer_schedule -->
+    <li class="nav-item <?= ($currentPage == 'installer_schedule.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="installer_schedule.php">
+            <i class="fas fa-fw fa-calendar-alt"></i>
+            <span>Installer Schedule</span>
         </a>
-    </li> -->
+    </li>
 
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
