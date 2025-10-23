@@ -52,8 +52,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (!isset($_POST['payment_method'])) {
         error_log("WARNING: payment_method not found in POST data!");
         error_log("Available POST keys: " . implode(', ', array_keys($_POST)));
+        error_log("Full POST data: " . print_r($_POST, true));
     } else {
         error_log("Payment method received: " . $_POST['payment_method']);
+    }
+    
+    // Additional debug: Check if installment_period is being received
+    if (isset($_POST['installment_period'])) {
+        error_log("Installment period received: " . $_POST['installment_period']);
+    } else {
+        error_log("Installment period NOT received in POST data");
     }
     
     // Debug: Show final payment method determination
@@ -285,7 +293,6 @@ $sales_result = $conn->query($sales_query);
                                             <th>Unit Price</th>
                                             <th>Payment Method</th>
                                             <th>Total</th>
-                                            <th>Cashier</th>
                                             <th>Date</th>
                                             <th>Actions</th>
                                         </tr>
@@ -321,13 +328,10 @@ $sales_result = $conn->query($sales_query);
                                                         ?>
                                                     </td>
                                                     <td><strong>₱<?php echo number_format($row['total_amount'], 2); ?></strong></td>
-                                                    <td>
-                                                        <i class="fas fa-user-circle text-primary mr-1"></i>
-                                                        <?php echo htmlspecialchars($row['cashier']); ?>
-                                                    </td>
+
                                                     <td>
                                                         <small class="text-muted">
-                                                            <?php echo date('M d, Y ', strtotime($row['date_of_sale'])); ?>
+                                                            <?php echo date('M d, Y g:i A', strtotime($row['date_of_sale'])); ?>
                                                         </small>
                                                     </td>
                                                     <td>
@@ -373,7 +377,7 @@ $sales_result = $conn->query($sales_query);
 <div class="modal fade" id="addSaleModal" tabindex="-1" role="dialog">
     <div class="modal-dialog modal-lg" role="document">
         <div class="modal-content">
-            <form id="saleForm" method="post" action="">
+            <form id="saleForm" method="post" action="<?php echo $_SERVER['PHP_SELF']; ?>">
                 <div class="modal-header bg-primary text-white">
                     <h5 class="modal-title">
                         <i class="fas fa-plus mr-2"></i>Record New Sale
@@ -892,6 +896,13 @@ $sales_result = $conn->query($sales_query);
                 return;
             }
         }
+        
+        // Debug: Log final form state before submission
+        console.log('=== FINAL FORM STATE BEFORE SUBMISSION ===');
+        console.log('Payment Method:', paymentMethod ? paymentMethod.value : 'NONE SELECTED');
+        console.log('Installment Period:', document.querySelector('input[name="installment_period"]:checked') ? document.querySelector('input[name="installment_period"]:checked').value : 'NONE SELECTED');
+        console.log('All payment method radios:', document.querySelectorAll('input[name="payment_method"]'));
+        console.log('All installment period radios:', document.querySelectorAll('input[name="installment_period"]'));
 
         // Check stock availability
         const selectedOption = document.getElementById('product_id').options[document.getElementById('product_id').selectedIndex];
@@ -968,31 +979,12 @@ $sales_result = $conn->query($sales_query);
     function submitSaleForm() {
         return new Promise((resolve, reject) => {
             const form = document.getElementById('saleForm');
-            const formDataToSend = new FormData(form);
             
-            // Debug: Log what's being sent
-            console.log('FormData contents:');
-            for (let [key, value] of formDataToSend.entries()) {
-                console.log(key + ': ' + value);
-            }
-            
-            // Debug: Check radio button values
+            // Debug: Check radio button values before submission
             const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
             const installmentPeriod = document.querySelector('input[name="installment_period"]:checked');
             console.log('Payment method radio:', paymentMethod ? paymentMethod.value : 'none selected');
             console.log('Installment period radio:', installmentPeriod ? installmentPeriod.value : 'none selected');
-            
-            // Ensure payment method is included in FormData
-            if (paymentMethod) {
-                formDataToSend.set('payment_method', paymentMethod.value);
-                console.log('Added payment_method to FormData:', paymentMethod.value);
-            }
-            
-            // Ensure installment period is included in FormData if selected
-            if (installmentPeriod) {
-                formDataToSend.set('installment_period', installmentPeriod.value);
-                console.log('Added installment_period to FormData:', installmentPeriod.value);
-            }
             
             // Show loading on submit button
             const submitBtn = document.getElementById('submitSale');
@@ -1000,32 +992,13 @@ $sales_result = $conn->query($sales_query);
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i>Processing...';
             submitBtn.disabled = true;
             
-            // Submit via fetch API for better control
-            fetch(window.location.href, {
-                method: 'POST',
-                body: formDataToSend
-            })
-            .then(response => response.text())
-            .then(data => {
-                // For now, we'll reload the page to handle PHP response
-                // In a more advanced setup, you'd parse JSON response
-                window.location.reload();
-                resolve();
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: 'An error occurred while processing the sale. Please try again.',
-                    confirmButtonColor: '#dc3545'
-                });
-                
-                // Reset button
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-                reject(error);
-            });
+            // Submit the form directly instead of using fetch
+            // This ensures all form data including radio buttons are properly submitted
+            form.submit();
+            
+            // Since we're doing a direct form submission, we'll resolve immediately
+            // The page will reload and show the result
+            resolve();
         });
     }
 

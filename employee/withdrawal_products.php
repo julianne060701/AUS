@@ -189,7 +189,6 @@ $sales_result = $conn->query($sales_query);
                                             <th>Quantity</th>
                                             <th>Unit Price</th>
                                             <th>Total</th>
-                                            <th>Cashier</th>
                                             <th>Date</th>
                                             <th>Actions</th>
                                         </tr>
@@ -207,12 +206,8 @@ $sales_result = $conn->query($sales_query);
                                                     <td>₱<?php echo number_format($row['selling_price'], 2); ?></td>
                                                     <td><strong>₱<?php echo number_format($row['total_amount'], 2); ?></strong></td>
                                                     <td>
-                                                        <i class="fas fa-user-circle text-primary mr-1"></i>
-                                                        <?php echo htmlspecialchars($row['cashier']); ?>
-                                                    </td>
-                                                    <td>
                                                         <small class="text-muted">
-                                                            <?php echo date('M d, Y ', strtotime($row['date_of_sale'])); ?>
+                                                            <?php echo date('M d, Y g:i A', strtotime($row['date_of_sale'])); ?>
                                                         </small>
                                                     </td>
                                                    <td class="text-center">
@@ -662,13 +657,160 @@ $sales_result = $conn->query($sales_query);
     }
 
     // Enhanced action functions with SweetAlert
-    function viewSale(id) {
+    function viewSaleDetails(id) {
+        // Show loading state
         Swal.fire({
-            title: `Sale Details #${id}`,
-            text: 'Sale details would be loaded here...',
-            icon: 'info',
-            confirmButtonColor: '#007bff'
+            title: 'Loading Sale Details...',
+            text: 'Please wait while we fetch the transaction details.',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            willOpen: () => {
+                Swal.showLoading();
+            }
         });
+
+        // Fetch sale details via AJAX
+        fetch(`view_sale_details.php?sale_id=${id}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const sale = data.sale;
+                    let paymentDetails = '';
+                    
+                    if (sale.payment_method === 'installment') {
+                        paymentDetails = `
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Payment Method:</strong><br>
+                                    <span class="badge badge-warning">
+                                        <i class="fas fa-credit-card mr-1"></i>
+                                        Installment (${sale.installment_period} months)
+                                    </span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Interest Rate:</strong><br>
+                                    <span class="text-warning">${sale.interest_rate}%</span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Original Price:</strong><br>
+                                    <span class="text-info">₱${parseFloat(sale.original_price).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Interest Amount:</strong><br>
+                                    <span class="text-warning">₱${parseFloat(sale.interest_amount).toFixed(2)}</span>
+                                </div>
+                            </div>
+                            <div class="row mt-2">
+                                <div class="col-6">
+                                    <strong>Monthly Payment:</strong><br>
+                                    <span class="text-primary font-weight-bold">₱${parseFloat(sale.monthly_payment).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Total with Interest:</strong><br>
+                                    <span class="text-danger font-weight-bold">₱${parseFloat(sale.total_amount).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        paymentDetails = `
+                            <div class="row">
+                                <div class="col-12">
+                                    <strong>Payment Method:</strong><br>
+                                    <span class="badge badge-success">
+                                        <i class="fas fa-money-bill-wave mr-1"></i>
+                                        Cash Payment
+                                    </span>
+                                </div>
+                            </div>
+                            <hr>
+                            <div class="row">
+                                <div class="col-6">
+                                    <strong>Original Price:</strong><br>
+                                    <span class="text-info">₱${parseFloat(sale.original_price || sale.selling_price * sale.quantity_sold).toFixed(2)}</span>
+                                </div>
+                                <div class="col-6">
+                                    <strong>Discount (10%):</strong><br>
+                                    <span class="text-success">₱${(parseFloat(sale.original_price || sale.selling_price * sale.quantity_sold) - parseFloat(sale.total_amount)).toFixed(2)}</span>
+                                </div>
+                            </div>
+                        `;
+                    }
+
+                    Swal.fire({
+                        title: `Sale Details #${sale.sale_id}`,
+                        html: `
+                            <div class="text-left">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Product:</strong><br>
+                                        <i class="fas fa-cube text-info mr-1"></i>
+                                        ${sale.aircon_model}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Quantity:</strong><br>
+                                        <span class="badge badge-info">${sale.quantity_sold} unit(s)</span>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Unit Price:</strong><br>
+                                        ₱${parseFloat(sale.selling_price).toFixed(2)}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Cashier:</strong><br>
+                                        <i class="fas fa-user-circle text-primary mr-1"></i>
+                                        ${sale.cashier}
+                                    </div>
+                                </div>
+                                <hr>
+                                ${paymentDetails}
+                                <hr>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <strong>Date of Sale:</strong><br>
+                                        <i class="fas fa-calendar text-muted mr-1"></i>
+                                        ${new Date(sale.date_of_sale).toLocaleDateString('en-US', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </div>
+                                    <div class="col-6">
+                                        <strong>Transaction ID:</strong><br>
+                                        <code>#${sale.sale_id.toString().padStart(3, '0')}</code>
+                                    </div>
+                                </div>
+                            </div>
+                        `,
+                        icon: 'info',
+                        confirmButtonColor: '#007bff',
+                        confirmButtonText: '<i class="fas fa-check mr-1"></i>Close',
+                        width: '600px'
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'Failed to fetch sale details.',
+                        icon: 'error',
+                        confirmButtonColor: '#dc3545'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred while fetching sale details.',
+                    icon: 'error',
+                    confirmButtonColor: '#dc3545'
+                });
+            });
     }
 
     function printReceipt(id) {

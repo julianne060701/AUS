@@ -1,12 +1,12 @@
 <?php 
 session_start();  // Start session before any output 
- 
+
 // Redirect if not logged in as admin 
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') { 
     header("Location: ../login.php"); 
     exit(); 
 } 
- 
+
 include '../config/conn.php'; 
 
 // Get filter parameters
@@ -21,20 +21,20 @@ $param_types = "";
 
 switch($filter) {
     case 'today':
-        $date_condition = "WHERE DATE(a.date_of_sale) = CURDATE()";
+        $date_condition = "WHERE DATE(schedule_date) = CURDATE()";
         break;
     case 'week':
-        $date_condition = "WHERE a.date_of_sale >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+        $date_condition = "WHERE schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
         break;
     case 'month':
-        $date_condition = "WHERE MONTH(a.date_of_sale) = MONTH(CURDATE()) AND YEAR(a.date_of_sale) = YEAR(CURDATE())";
+        $date_condition = "WHERE MONTH(schedule_date) = MONTH(CURDATE()) AND YEAR(schedule_date) = YEAR(CURDATE())";
         break;
     case 'year':
-        $date_condition = "WHERE YEAR(a.date_of_sale) = YEAR(CURDATE())";
+        $date_condition = "WHERE YEAR(schedule_date) = YEAR(CURDATE())";
         break;
     case 'custom':
         if($start_date && $end_date) {
-            $date_condition = "WHERE a.date_of_sale BETWEEN ? AND ?";
+            $date_condition = "WHERE schedule_date BETWEEN ? AND ?";
             $params = [$start_date, $end_date];
             $param_types = "ss";
         }
@@ -45,15 +45,15 @@ switch($filter) {
         break;
 }
 
-// Query for sales summary
+// Query for install summary
 $summary_query = "SELECT 
-    COUNT(*) as total_transactions,
-    SUM(a.quantity_sold) as total_quantity_sold,
-    SUM(a.total_amount) as total_revenue,
-    AVG(a.total_amount) as avg_transaction,
-    SUM(a.total_amount - (p.buying_price * a.quantity_sold)) as total_profit
-FROM aircon_sales a 
-LEFT JOIN products p ON a.aircon_model = p.product_name
+    COUNT(*) as total_schedules,
+    COUNT(CASE WHEN status = 'Scheduled' THEN 1 END) as scheduled_count,
+    COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_count,
+    COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_count,
+    COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled_count,
+    COUNT(DISTINCT installer_name) as unique_installers
+FROM installer_schedules 
 $date_condition";
 
 if(!empty($params)) {
@@ -67,105 +67,100 @@ if(!empty($params)) {
     $summary = $result->fetch_assoc();
 }
 
-// Query for detailed sales data
-$sales_query = "SELECT 
-    a.sale_id,
-    a.aircon_model,
-    a.quantity_sold,
-    a.selling_price,
-    a.total_amount,
-    a.date_of_sale,
-    a.cashier,
-    p.capacity,
-    p.buying_price,
-    c.category_name,
-    (a.total_amount - (p.buying_price * a.quantity_sold)) as profit
-FROM aircon_sales a 
-LEFT JOIN products p ON a.aircon_model = p.product_name
-LEFT JOIN category c ON p.category_id = c.category_id
+// Query for detailed install data
+$install_query = "SELECT 
+    id,
+    installer_name,
+    customer_name,
+    contact_number,
+    address,
+    schedule_date,
+    schedule_time,
+    service_type,
+    products_to_install,
+    notes,
+    status,
+    created_at,
+    updated_at
+FROM installer_schedules 
 $date_condition 
-ORDER BY a.date_of_sale DESC, a.sale_id DESC";
+ORDER BY schedule_date DESC, schedule_time DESC";
 
 if(!empty($params)) {
-    $stmt = $conn->prepare($sales_query);
+    $stmt = $conn->prepare($install_query);
     $stmt->bind_param($param_types, ...$params);
     $stmt->execute();
     $result = $stmt->get_result();
-    $sales_data = $result->fetch_all(MYSQLI_ASSOC);
+    $install_data = $result->fetch_all(MYSQLI_ASSOC);
 } else {
-    $result = $conn->query($sales_query);
-    $sales_data = $result->fetch_all(MYSQLI_ASSOC);
+    $result = $conn->query($install_query);
+    $install_data = $result->fetch_all(MYSQLI_ASSOC);
 }
 
-// Query for aircon model breakdown
-$breakdown_query = "SELECT 
-    a.aircon_model,
-    p.capacity,
-    c.category_name,
-    COUNT(*) as transaction_count,
-    SUM(a.quantity_sold) as total_quantity,
-    SUM(a.total_amount) as total_revenue,
-    AVG(a.selling_price) as avg_selling_price,
-    SUM(a.total_amount - (COALESCE(p.buying_price, 0) * a.quantity_sold)) as total_profit
-FROM aircon_sales a 
-LEFT JOIN products p ON a.aircon_model = p.product_name
-LEFT JOIN category c ON p.category_id = c.category_id
+// Query for installer breakdown
+$installer_query = "SELECT 
+    installer_name,
+    COUNT(*) as total_schedules,
+    COUNT(CASE WHEN status = 'Scheduled' THEN 1 END) as scheduled_count,
+    COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_count,
+    COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_count,
+    COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled_count
+FROM installer_schedules 
 $date_condition 
-GROUP BY a.aircon_model, p.capacity, c.category_name 
-ORDER BY total_revenue DESC";
+GROUP BY installer_name 
+ORDER BY total_schedules DESC";
 
 if(!empty($params)) {
-    $stmt = $conn->prepare($breakdown_query);
+    $stmt = $conn->prepare($installer_query);
     $stmt->bind_param($param_types, ...$params);
     $stmt->execute();
     $result = $stmt->get_result();
-    $breakdown_data = $result->fetch_all(MYSQLI_ASSOC);
+    $installer_data = $result->fetch_all(MYSQLI_ASSOC);
 } else {
-    $result = $conn->query($breakdown_query);
-    $breakdown_data = $result->fetch_all(MYSQLI_ASSOC);
+    $result = $conn->query($installer_query);
+    $installer_data = $result->fetch_all(MYSQLI_ASSOC);
 }
 
-// Query for daily sales chart (last 30 days for chart)
+// Query for service type breakdown
+$service_query = "SELECT 
+    service_type,
+    COUNT(*) as total_count,
+    COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_count,
+    COUNT(CASE WHEN status = 'Scheduled' THEN 1 END) as scheduled_count,
+    COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_count,
+    COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled_count
+FROM installer_schedules 
+$date_condition 
+GROUP BY service_type 
+ORDER BY total_count DESC";
+
+if(!empty($params)) {
+    $stmt = $conn->prepare($service_query);
+    $stmt->bind_param($param_types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    $service_data = $result->fetch_all(MYSQLI_ASSOC);
+} else {
+    $result = $conn->query($service_query);
+    $service_data = $result->fetch_all(MYSQLI_ASSOC);
+}
+
+// Query for daily install chart (last 30 days for chart)
 $chart_query = "SELECT 
-    DATE(a.date_of_sale) as sale_date,
-    SUM(a.total_amount) as daily_revenue,
-    SUM(a.quantity_sold) as daily_quantity,
-    COUNT(*) as daily_transactions
-FROM aircon_sales a
-WHERE a.date_of_sale >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-GROUP BY DATE(a.date_of_sale) 
-ORDER BY sale_date ASC";
+    DATE(schedule_date) as install_date,
+    COUNT(*) as daily_schedules,
+    COUNT(CASE WHEN status = 'Completed' THEN 1 END) as daily_completed
+FROM installer_schedules
+WHERE schedule_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+GROUP BY DATE(schedule_date) 
+ORDER BY install_date ASC";
 
 $result = $conn->query($chart_query);
 $chart_data = $result->fetch_all(MYSQLI_ASSOC);
-
-// Query for category breakdown
-$category_query = "SELECT 
-    c.category_name,
-    COUNT(*) as transaction_count,
-    SUM(a.quantity_sold) as total_quantity,
-    SUM(a.total_amount) as total_revenue
-FROM aircon_sales a 
-LEFT JOIN products p ON a.aircon_model = p.product_name
-LEFT JOIN category c ON p.category_id = c.category_id
-$date_condition 
-GROUP BY c.category_name 
-ORDER BY total_revenue DESC";
-
-if(!empty($params)) {
-    $stmt = $conn->prepare($category_query);
-    $stmt->bind_param($param_types, ...$params);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    $category_data = $result->fetch_all(MYSQLI_ASSOC);
-} else {
-    $result = $conn->query($category_query);
-    $category_data = $result->fetch_all(MYSQLI_ASSOC);
-}
 ?> 
 <!DOCTYPE html> 
 <html lang="en"> 
- 
+
 <head> 
     <?php include('../includes/header.php'); ?> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -206,40 +201,66 @@ if(!empty($params)) {
             height: 300px;
             margin: 20px 0;
         }
-        .profit-positive {
-            color: #28a745;
+        .status-scheduled {
+            color: #ffc107;
+            font-weight: bold;
         }
-        .profit-negative {
+        .status-in-progress {
+            color: #17a2b8;
+            font-weight: bold;
+        }
+        .status-completed {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .status-cancelled {
             color: #dc3545;
+            font-weight: bold;
+        }
+        .badge-scheduled {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .badge-in-progress {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .badge-completed {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .badge-cancelled {
+            background-color: #dc3545;
+            color: #fff;
         }
     </style>
 </head> 
- 
+
 <body id="page-top"> 
- 
+
     <!-- Page Wrapper --> 
     <div id="wrapper"> 
- 
+
         <!-- Sidebar --> 
         <?php include('../includes/sidebar.php'); ?> 
         <!-- End of Sidebar --> 
- 
+
         <!-- Content Wrapper --> 
         <div id="content-wrapper" class="d-flex flex-column"> 
- 
+
             <!-- Main Content --> 
             <div id="content"> 
- 
+
                 <!-- Topbar --> 
                 <?php include('../includes/topbar.php'); ?> 
                 <!-- End of Topbar --> 
- 
+
                 <!-- Begin Page Content --> 
                 <div class="container-fluid"> 
- 
+
                     <!-- Page Heading --> 
                     <div class="d-sm-flex align-items-center justify-content-between mb-4"> 
-                        <h1 class="h3 mb-0 text-gray-800">Aircon Sales Report</h1>
+                        <h1 class="h3 mb-0 text-gray-800">Installation Report</h1>
                         <button class="btn btn-primary" onclick="window.print()">
                             <i class="fas fa-print"></i> Print Report
                         </button>
@@ -247,7 +268,7 @@ if(!empty($params)) {
 
                     <!-- Filter Section -->
                     <div class="filter-card">
-                        <h5 class="mb-3">Filter Sales Data</h5>
+                        <h5 class="mb-3">Filter Installation Data</h5>
                         <form method="GET" id="filterForm">
                             <div class="row align-items-end">
                                 <div class="col-md-8">
@@ -277,7 +298,7 @@ if(!empty($params)) {
                             </div>
                         </form>
                     </div>
- 
+
                     <!-- Summary Cards Row -->
                     <div class="row mb-4">
                         <div class="col-xl-3 col-md-6 mb-4">
@@ -285,11 +306,11 @@ if(!empty($params)) {
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Transactions</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['total_transactions'] ?? 0) ?></div>
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Schedules</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['total_schedules'] ?? 0) ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                                            <i class="fas fa-calendar-alt fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -301,11 +322,11 @@ if(!empty($params)) {
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Revenue</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱<?= number_format($summary['total_revenue'] ?? 0, 2) ?></div>
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Completed</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['completed_count'] ?? 0) ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-peso-sign fa-2x text-gray-300"></i>
+                                            <i class="fas fa-check-circle fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -317,11 +338,11 @@ if(!empty($params)) {
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Units Sold</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['total_quantity_sold'] ?? 0) ?></div>
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">In Progress</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['in_progress_count'] ?? 0) ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-wind fa-2x text-gray-300"></i>
+                                            <i class="fas fa-clock fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -333,11 +354,11 @@ if(!empty($params)) {
                                 <div class="card-body">
                                     <div class="row no-gutters align-items-center">
                                         <div class="col mr-2">
-                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Total Profit</div>
-                                            <div class="h5 mb-0 font-weight-bold text-gray-800">₱<?= number_format($summary['total_profit'] ?? 0, 2) ?></div>
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Active Installers</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800"><?= number_format($summary['unique_installers'] ?? 0) ?></div>
                                         </div>
                                         <div class="col-auto">
-                                            <i class="fas fa-chart-line fa-2x text-gray-300"></i>
+                                            <i class="fas fa-users fa-2x text-gray-300"></i>
                                         </div>
                                     </div>
                                 </div>
@@ -347,75 +368,71 @@ if(!empty($params)) {
 
                     <!-- Charts Row -->
                     <div class="row mb-4">
-                        <!-- Sales Trend Chart -->
+                        <!-- Installation Trend Chart -->
                         <div class="col-lg-8">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Sales Trend (Last 30 Days)</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Installation Trend (Last 30 Days)</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
-                                        <canvas id="salesTrendChart"></canvas>
+                                        <canvas id="installTrendChart"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Category Sales Breakdown -->
+                        <!-- Service Type Breakdown -->
                         <div class="col-lg-4">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Sales by Category</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Service Types</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="chart-container">
-                                        <canvas id="categoryChart"></canvas>
+                                        <canvas id="serviceChart"></canvas>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Aircon Model Breakdown Table -->
+                    <!-- Installer Performance Table -->
                     <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Sales by Aircon Model</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Installer Performance</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered">
                                             <thead>
                                                 <tr>
-                                                    <th>Aircon Model</th>
-                                                    <th>Capacity</th>
-                                                    <th>Category</th>
-                                                    <th>Transactions</th>
-                                                    <th>Units Sold</th>
-                                                    <th>Total Revenue</th>
-                                                    <th>Avg Price</th>
-                                                    <th>Total Profit</th>
+                                                    <th>Installer Name</th>
+                                                    <th>Total Schedules</th>
+                                                    <th>Scheduled</th>
+                                                    <th>In Progress</th>
+                                                    <th>Completed</th>
+                                                    <th>Cancelled</th>
+                                                    <th>Completion Rate</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php if(empty($breakdown_data)): ?>
+                                                <?php if(empty($installer_data)): ?>
                                                 <tr>
-                                                    <td colspan="8" class="text-center">No sales data available for the selected period</td>
+                                                    <td colspan="7" class="text-center">No installer data available for the selected period</td>
                                                 </tr>
                                                 <?php else: ?>
-                                                <?php foreach($breakdown_data as $row): ?>
+                                                <?php foreach($installer_data as $row): ?>
                                                 <tr>
-                                                    <td><?= htmlspecialchars($row['aircon_model']) ?></td>
-                                                    <td><?= htmlspecialchars($row['capacity'] ?? 'N/A') ?></td>
-                                                    <td><?= htmlspecialchars($row['category_name'] ?? 'Uncategorized') ?></td>
-                                                    <td><?= number_format($row['transaction_count']) ?></td>
-                                                    <td><?= number_format($row['total_quantity']) ?></td>
-                                                    <td>₱<?= number_format($row['total_revenue'], 2) ?></td>
-                                                    <td>₱<?= number_format($row['avg_selling_price'], 2) ?></td>
-                                                    <td class="<?= ($row['total_profit'] >= 0) ? 'profit-positive' : 'profit-negative' ?>">
-                                                        ₱<?= number_format($row['total_profit'], 2) ?>
-                                                    </td>
+                                                    <td><?= htmlspecialchars($row['installer_name']) ?></td>
+                                                    <td><?= number_format($row['total_schedules']) ?></td>
+                                                    <td><span class="badge badge-scheduled"><?= number_format($row['scheduled_count']) ?></span></td>
+                                                    <td><span class="badge badge-in-progress"><?= number_format($row['in_progress_count']) ?></span></td>
+                                                    <td><span class="badge badge-completed"><?= number_format($row['completed_count']) ?></span></td>
+                                                    <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
+                                                    <td><?= $row['total_schedules'] > 0 ? number_format(($row['completed_count'] / $row['total_schedules']) * 100, 1) : 0 ?>%</td>
                                                 </tr>
                                                 <?php endforeach; ?>
                                                 <?php endif; ?>
@@ -427,50 +444,103 @@ if(!empty($params)) {
                         </div>
                     </div>
 
-                    <!-- Detailed Sales Table -->
-                    <div class="row">
+                    <!-- Service Type Breakdown Table -->
+                    <div class="row mb-4">
                         <div class="col-12">
                             <div class="card shadow mb-4">
                                 <div class="card-header py-3">
-                                    <h6 class="m-0 font-weight-bold text-primary">Detailed Sales Transactions</h6>
+                                    <h6 class="m-0 font-weight-bold text-primary">Service Type Breakdown</h6>
                                 </div>
                                 <div class="card-body">
                                     <div class="table-responsive">
                                         <table class="table table-bordered">
                                             <thead>
                                                 <tr>
-                                                    <th>Sale ID</th>
-                                                    <th>Date</th>
-                                                    <th>Aircon Model</th>
-                                                    <th>Capacity</th>
-                                                    <th>Category</th>
-                                                    <th>Quantity</th>
-                                                    <th>Selling Price</th>
-                                                    <th>Total Amount</th>
-                                                    <th>Profit</th>
-                                                    <th>Cashier</th>
+                                                    <th>Service Type</th>
+                                                    <th>Total Count</th>
+                                                    <th>Scheduled</th>
+                                                    <th>In Progress</th>
+                                                    <th>Completed</th>
+                                                    <th>Cancelled</th>
+                                                    <th>Completion Rate</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                <?php if(empty($sales_data)): ?>
+                                                <?php if(empty($service_data)): ?>
                                                 <tr>
-                                                    <td colspan="10" class="text-center">No sales data available for the selected period</td>
+                                                    <td colspan="7" class="text-center">No service data available for the selected period</td>
                                                 </tr>
                                                 <?php else: ?>
-                                                <?php foreach($sales_data as $sale): ?>
+                                                <?php foreach($service_data as $row): ?>
                                                 <tr>
-                                                    <td><?= htmlspecialchars($sale['sale_id']) ?></td>
-                                                    <td><?= date('M j, Y g:i A', strtotime($sale['date_of_sale'])) ?></td>
-                                                    <td><?= htmlspecialchars($sale['aircon_model']) ?></td>
-                                                    <td><?= htmlspecialchars($sale['capacity'] ?? 'N/A') ?></td>
-                                                    <td><?= htmlspecialchars($sale['category_name'] ?? 'Uncategorized') ?></td>
-                                                    <td><?= number_format($sale['quantity_sold']) ?></td>
-                                                    <td>₱<?= number_format($sale['selling_price'], 2) ?></td>
-                                                    <td>₱<?= number_format($sale['total_amount'], 2) ?></td>
-                                                    <td class="<?= ($sale['profit'] >= 0) ? 'profit-positive' : 'profit-negative' ?>">
-                                                        ₱<?= number_format($sale['profit'] ?? 0, 2) ?>
+                                                    <td><?= htmlspecialchars($row['service_type']) ?></td>
+                                                    <td><?= number_format($row['total_count']) ?></td>
+                                                    <td><span class="badge badge-scheduled"><?= number_format($row['scheduled_count']) ?></span></td>
+                                                    <td><span class="badge badge-in-progress"><?= number_format($row['in_progress_count']) ?></span></td>
+                                                    <td><span class="badge badge-completed"><?= number_format($row['completed_count']) ?></span></td>
+                                                    <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
+                                                    <td><?= $row['total_count'] > 0 ? number_format(($row['completed_count'] / $row['total_count']) * 100, 1) : 0 ?>%</td>
+                                                </tr>
+                                                <?php endforeach; ?>
+                                                <?php endif; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Installation Table -->
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card shadow mb-4">
+                                <div class="card-header py-3">
+                                    <h6 class="m-0 font-weight-bold text-primary">Detailed Installation Schedules</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered">
+                                            <thead>
+                                                <tr>
+                                                    <th>Schedule ID</th>
+                                                    <th>Installer</th>
+                                                    <th>Customer</th>
+                                                    <th>Contact</th>
+                                                    <th>Address</th>
+                                                    <th>Schedule Date</th>
+                                                    <th>Schedule Time</th>
+                                                    <th>Service Type</th>
+                                                    <th>Status</th>
+                                                    <th>Products</th>
+                                                    <th>Notes</th>
+                                                    <th>Created</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php if(empty($install_data)): ?>
+                                                <tr>
+                                                    <td colspan="12" class="text-center">No installation data available for the selected period</td>
+                                                </tr>
+                                                <?php else: ?>
+                                                <?php foreach($install_data as $install): ?>
+                                                <tr>
+                                                    <td><?= htmlspecialchars($install['id']) ?></td>
+                                                    <td><?= htmlspecialchars($install['installer_name']) ?></td>
+                                                    <td><?= htmlspecialchars($install['customer_name']) ?></td>
+                                                    <td><?= htmlspecialchars($install['contact_number']) ?></td>
+                                                    <td><?= htmlspecialchars(substr($install['address'], 0, 50)) ?><?= strlen($install['address']) > 50 ? '...' : '' ?></td>
+                                                    <td><?= date('M j, Y', strtotime($install['schedule_date'])) ?></td>
+                                                    <td><?= date('g:i A', strtotime($install['schedule_time'])) ?></td>
+                                                    <td><?= htmlspecialchars($install['service_type']) ?></td>
+                                                    <td>
+                                                        <span class="badge badge-<?= strtolower(str_replace(' ', '-', $install['status'])) ?>">
+                                                            <?= htmlspecialchars($install['status']) ?>
+                                                        </span>
                                                     </td>
-                                                    <td><?= htmlspecialchars($sale['cashier']) ?></td>
+                                                    <td><?= htmlspecialchars(substr($install['products_to_install'], 0, 30)) ?><?= strlen($install['products_to_install']) > 30 ? '...' : '' ?></td>
+                                                    <td><?= htmlspecialchars(substr($install['notes'], 0, 30)) ?><?= strlen($install['notes']) > 30 ? '...' : '' ?></td>
+                                                    <td><?= date('M j, Y', strtotime($install['created_at'])) ?></td>
                                                 </tr>
                                                 <?php endforeach; ?>
                                                 <?php endif; ?>
@@ -484,16 +554,16 @@ if(!empty($params)) {
  
                 </div> 
                 <!-- /.container-fluid --> 
- 
+
             </div> 
             <!-- End of Main Content --> 
- 
+
             <!-- Footer --> 
             <?php include('../includes/footer.php'); ?> 
             <!-- End of Footer --> 
- 
+
         </div> <!-- End of Content Wrapper --> 
- 
+
     </div> <!-- End of Page Wrapper --> 
 
     <script>
@@ -505,22 +575,30 @@ if(!empty($params)) {
         }
 
         // Prepare PHP data for JS safely
-        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['sale_date'])); }, $chart_data)); ?>;
-        const chartData = <?php echo json_encode(array_map('floatval', array_column($chart_data, 'daily_revenue'))); ?>;
-        const categoryLabels = <?php echo json_encode(array_column($category_data, 'category_name')); ?>;
-        const categoryData = <?php echo json_encode(array_map('floatval', array_column($category_data, 'total_revenue'))); ?>;
+        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['install_date'])); }, $chart_data)); ?>;
+        const chartData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_schedules'))); ?>;
+        const completedData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_completed'))); ?>;
+        const serviceLabels = <?php echo json_encode(array_column($service_data, 'service_type')); ?>;
+        const serviceData = <?php echo json_encode(array_map('intval', array_column($service_data, 'total_count'))); ?>;
 
-        // Sales Trend Chart
-        const trendCtx = document.getElementById('salesTrendChart').getContext('2d');
+        // Installation Trend Chart
+        const trendCtx = document.getElementById('installTrendChart').getContext('2d');
         const trendChart = new Chart(trendCtx, {
             type: 'line',
             data: {
                 labels: chartLabels,
                 datasets: [{
-                    label: 'Daily Revenue',
+                    label: 'Total Schedules',
                     data: chartData,
                     borderColor: 'rgb(75, 192, 192)',
                     backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }, {
+                    label: 'Completed',
+                    data: completedData,
+                    borderColor: 'rgb(40, 167, 69)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
                     tension: 0.1,
                     fill: true
                 }]
@@ -532,9 +610,7 @@ if(!empty($params)) {
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return '₱' + value.toLocaleString();
-                            }
+                            stepSize: 1
                         }
                     }
                 },
@@ -542,7 +618,7 @@ if(!empty($params)) {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return 'Revenue: ₱' + context.parsed.y.toLocaleString();
+                                return context.dataset.label + ': ' + context.parsed.y;
                             }
                         }
                     }
@@ -550,21 +626,20 @@ if(!empty($params)) {
             }
         });
 
-        // Category Pie Chart
-        const pieCtx = document.getElementById('categoryChart').getContext('2d');
-        const pieChart = new Chart(pieCtx, {
+        // Service Type Pie Chart
+        const serviceCtx = document.getElementById('serviceChart').getContext('2d');
+        const serviceChart = new Chart(serviceCtx, {
             type: 'doughnut',
             data: {
-                labels: categoryLabels,
+                labels: serviceLabels,
                 datasets: [{
-                    data: categoryData,
+                    data: serviceData,
                     backgroundColor: [
                         '#FF6384',
                         '#36A2EB',
                         '#FFCE56',
                         '#4BC0C0',
                         '#9966FF',
-                        '#FF9F40',
                         '#FF9F40',
                         '#C9CBCF'
                     ]
@@ -580,7 +655,7 @@ if(!empty($params)) {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                return context.label + ': ₱' + context.parsed.toLocaleString();
+                                return context.label + ': ' + context.parsed;
                             }
                         }
                     }
@@ -590,5 +665,5 @@ if(!empty($params)) {
     </script>
  
 </body> 
- 
+
 </html>

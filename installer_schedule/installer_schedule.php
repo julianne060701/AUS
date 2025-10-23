@@ -14,20 +14,42 @@ $current_year = isset($_GET['year']) ? (int)$_GET['year'] : date('Y');
 // Get installer filter
 $installer_filter = isset($_GET['installer']) ? $_GET['installer'] : '';
 
-// Get all installers for filter dropdown
-$installers_query = "SELECT DISTINCT installer_name FROM installer_schedules ORDER BY installer_name";
+// Get completed view filters
+$completed_from_date = isset($_GET['completed_from_date']) ? $_GET['completed_from_date'] : '';
+$completed_to_date = isset($_GET['completed_to_date']) ? $_GET['completed_to_date'] : '';
+$completed_installer_filter = isset($_GET['completed_installer']) ? $_GET['completed_installer'] : '';
+
+// Get all installers for filter dropdown from users table
+$installers_query = "SELECT full_name FROM users WHERE role = 'installer' ORDER BY full_name";
 $installers_result = mysqli_query($conn, $installers_query);
 
-// Build where clause
+// Build where clause for regular views
 $where_conditions = ["MONTH(schedule_date) = $current_month", "YEAR(schedule_date) = $current_year"];
 if ($installer_filter) {
     $where_conditions[] = "installer_name = '$installer_filter'";
 }
 $where_clause = implode(' AND ', $where_conditions);
 
+// Build where clause for completed view
+$completed_where_conditions = ["status = 'Completed'"];
+if ($completed_from_date) {
+    $completed_where_conditions[] = "DATE(completed_at) >= '$completed_from_date'";
+}
+if ($completed_to_date) {
+    $completed_where_conditions[] = "DATE(completed_at) <= '$completed_to_date'";
+}
+if ($completed_installer_filter) {
+    $completed_where_conditions[] = "installer_name = '$completed_installer_filter'";
+}
+$completed_where_clause = implode(' AND ', $completed_where_conditions);
+
 // Get schedules for the month
 $query = "SELECT * FROM installer_schedules WHERE $where_clause ORDER BY schedule_date, schedule_time";
 $result = mysqli_query($conn, $query);
+
+// Get completed schedules for completed view
+$completed_query = "SELECT * FROM installer_schedules WHERE $completed_where_clause ORDER BY completed_at DESC";
+$completed_result = mysqli_query($conn, $completed_query);
 
 // Get statistics
 $stats_query = "SELECT 
@@ -710,6 +732,73 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             color: #2d3748;
             margin-bottom: 8px;
         }
+
+        /* Completion Image Styles */
+        .completion-thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 2px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .completion-thumbnail:hover {
+            border-color: #48bb78;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+        }
+
+        .completion-thumbnail-large {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 12px;
+            cursor: pointer;
+            border: 3px solid #e2e8f0;
+            transition: all 0.3s ease;
+        }
+
+        .completion-thumbnail-large:hover {
+            border-color: #48bb78;
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.3);
+        }
+
+        .completion-image-preview {
+            text-align: center;
+        }
+
+        .completed-card-container {
+            margin-bottom: 1rem;
+        }
+
+        .completed-card-container .card {
+            transition: all 0.3s ease;
+        }
+
+        .completed-card-container .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        }
+
+        /* Completion Image Modal */
+        .completion-image-modal .modal-dialog {
+            max-width: 800px;
+        }
+
+        .completion-image-modal .modal-body {
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .completion-image-modal .modal-body img {
+            max-width: 100%;
+            max-height: 70vh;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body id="page-top">
@@ -736,7 +825,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 <i class="fas fa-tasks"></i> Schedule
                             </button>
                             <button class="view-btn" data-view="list">
-                                <i class="fas fa-list"></i> List
+                                <i class="fas fa-list"></i> Completed
                             </button>
                         </div>
                     </div>
@@ -804,8 +893,8 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <?php
                                     mysqli_data_seek($installers_result, 0);
                                     while ($installer = mysqli_fetch_assoc($installers_result)) {
-                                        $selected = ($installer_filter == $installer['installer_name']) ? 'selected' : '';
-                                        echo "<option value='" . htmlspecialchars($installer['installer_name']) . "' $selected>" . htmlspecialchars($installer['installer_name']) . "</option>";
+                                        $selected = ($installer_filter == $installer['full_name']) ? 'selected' : '';
+                                        echo "<option value='" . htmlspecialchars($installer['full_name']) . "' $selected>" . htmlspecialchars($installer['full_name']) . "</option>";
                                     }
                                     ?>
                                 </select>
@@ -815,6 +904,45 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <i class="fas fa-filter"></i> Apply Filter
                                 </button>
                                 <a href="installer_dashboard.php" class="btn btn-secondary">
+                                    <i class="fas fa-times"></i> Clear
+                                </a>
+                            </div>
+                        </div>
+                        <input type="hidden" name="month" value="<?php echo $current_month; ?>">
+                        <input type="hidden" name="year" value="<?php echo $current_year; ?>">
+                    </form>
+                </div>
+
+                <!-- Completed Filter Card -->
+                <div class="filter-card" id="completed-filter-card" style="display: none;">
+                    <form method="GET" action="">
+                        <div class="row align-items-end">
+                            <div class="col-md-3">
+                                <label for="completed_from_date">From Date</label>
+                                <input type="date" class="form-control" id="completed_from_date" name="completed_from_date" value="<?php echo isset($_GET['completed_from_date']) ? $_GET['completed_from_date'] : ''; ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="completed_to_date">To Date</label>
+                                <input type="date" class="form-control" id="completed_to_date" name="completed_to_date" value="<?php echo isset($_GET['completed_to_date']) ? $_GET['completed_to_date'] : ''; ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label for="completed_installer">Filter by Installer</label>
+                                <select class="form-control" id="completed_installer" name="completed_installer">
+                                    <option value="">All Installers</option>
+                                    <?php
+                                    mysqli_data_seek($installers_result, 0);
+                                    while ($installer = mysqli_fetch_assoc($installers_result)) {
+                                        $selected = (isset($_GET['completed_installer']) && $_GET['completed_installer'] == $installer['full_name']) ? 'selected' : '';
+                                        echo "<option value='" . htmlspecialchars($installer['full_name']) . "' $selected>" . htmlspecialchars($installer['full_name']) . "</option>";
+                                    }
+                                    ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-filter"></i> Apply Filter
+                                </button>
+                                <a href="installer_schedule.php" class="btn btn-secondary">
                                     <i class="fas fa-times"></i> Clear
                                 </a>
                             </div>
@@ -1014,14 +1142,28 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 while ($schedule = mysqli_fetch_assoc($result)) {
                                     if ($schedule['status'] == 'Completed') {
                                         $completed_count++;
-                                        echo '<div class="kanban-card" style="border-color: #48bb78;" data-schedule-id="' . $schedule['id'] . '">';
+                                        echo '<div class="kanban-card completed-card" style="border-color: #48bb78;" data-schedule-id="' . $schedule['id'] . '">';
                                         echo '<div class="card-title">' . htmlspecialchars($schedule['customer_name']) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-calendar"></i> ' . date('M d, Y', strtotime($schedule['schedule_date'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
                                         echo '<div class="installer-badge"><i class="fas fa-user"></i> ' . htmlspecialchars($schedule['installer_name']) . '</div>';
+                                        
+                                        // Show completion image if available
+                                        if (!empty($schedule['completion_image'])) {
+                                            echo '<div class="completion-image-preview mt-2">';
+                                            echo '<img src="../' . htmlspecialchars($schedule['completion_image']) . '" alt="Completion Image" class="completion-thumbnail" onclick="viewCompletionImage(\'' . htmlspecialchars($schedule['completion_image']) . '\')">';
+                                            echo '<small class="text-muted d-block mt-1"><i class="fas fa-camera"></i> Completion Photo</small>';
+                                            echo '</div>';
+                                        }
+                                        
+                                        // Show completion date if available
+                                        if (!empty($schedule['completed_at'])) {
+                                            echo '<div class="card-detail mt-2"><i class="fas fa-check-circle text-success"></i> Completed: ' . date('M d, Y g:i A', strtotime($schedule['completed_at'])) . '</div>';
+                                        }
+                                        
                                         echo '<div class="card-actions">';
-                                        echo '<button class="action-btn btn-secondary">View Report</button>';
+                                        echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View Details</button>';
                                         echo '</div>';
                                         echo '</div>';
                                     }
@@ -1037,68 +1179,157 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                     <!-- List View -->
                     <div id="list-view" class="list-container">
                         <?php
-                        // Group schedules by date for list view
-                        $grouped_schedules = array();
-                        mysqli_data_seek($result, 0);
-                        while ($schedule = mysqli_fetch_assoc($result)) {
-                            $date = $schedule['schedule_date'];
-                            if (!isset($grouped_schedules[$date])) {
-                                $grouped_schedules[$date] = array();
-                            }
-                            $grouped_schedules[$date][] = $schedule;
-                        }
+                        // Check if we're in completed view mode
+                        $is_completed_view = isset($_GET['completed_from_date']) || isset($_GET['completed_to_date']) || isset($_GET['completed_installer']);
                         
-                        ksort($grouped_schedules);
-                        
-                        if (count($grouped_schedules) > 0) {
-                            foreach ($grouped_schedules as $date => $schedules) {
-                                $date_obj = new DateTime($date);
-                                $today = new DateTime();
-                                $tomorrow = new DateTime('+1 day');
+                        if ($is_completed_view) {
+                            // Show only completed installations
+                            if (mysqli_num_rows($completed_result) > 0) {
+                                echo '<div class="completed-installations-header mb-4">';
+                                echo '<h4 class="text-success"><i class="fas fa-check-circle mr-2"></i>Completed Installations</h4>';
+                                echo '<p class="text-muted">Showing completed installations with completion photos</p>';
+                                echo '</div>';
                                 
-                                $date_label = '';
-                                if ($date_obj->format('Y-m-d') == $today->format('Y-m-d')) {
-                                    $date_label = 'Today - ' . $date_obj->format('F j, Y');
-                                } elseif ($date_obj->format('Y-m-d') == $tomorrow->format('Y-m-d')) {
-                                    $date_label = 'Tomorrow - ' . $date_obj->format('F j, Y');
-                                } else {
-                                    $date_label = $date_obj->format('F j, Y');
-                                }
-                                
-                                echo '<div class="list-group">';
-                                echo '<div class="list-date"><i class="fas fa-calendar-alt"></i> ' . $date_label . '</div>';
-                                
-                                foreach ($schedules as $schedule) {
-                                    $color = '#cbd5e0';
-                                    if ($schedule['status'] == 'Scheduled') $color = '#f6ad55';
-                                    elseif ($schedule['status'] == 'In Progress') $color = '#4299e1';
-                                    elseif ($schedule['status'] == 'Completed') $color = '#48bb78';
-                                    
-                                    echo '<div class="list-item" style="border-color: ' . $color . ';">';
-                                    echo '<div class="list-info">';
-                                    echo '<div class="list-customer">' . htmlspecialchars($schedule['customer_name']) . '</div>';
-                                    echo '<div class="list-details">';
-                                    echo '<div class="list-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
-                                    echo '<div class="list-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
-                                    echo '<div class="list-detail"><i class="fas fa-user"></i> ' . (!empty($schedule['installer_name']) ? htmlspecialchars($schedule['installer_name']) : 'Unassigned') . '</div>';
-                                    echo '<div class="list-detail"><i class="fas fa-map-marker-alt"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 40)) . '...</div>';
-                                    echo '<div class="list-detail"><i class="fas fa-info-circle"></i> ' . htmlspecialchars($schedule['status']) . '</div>';
+                                while ($schedule = mysqli_fetch_assoc($completed_result)) {
+                                    echo '<div class="completed-card-container mb-3">';
+                                    echo '<div class="card shadow-sm" style="border-left: 4px solid #48bb78;">';
+                                    echo '<div class="card-body">';
+                                    echo '<div class="row">';
+                                    echo '<div class="col-md-8">';
+                                    echo '<h5 class="card-title text-primary">' . htmlspecialchars($schedule['customer_name']) . '</h5>';
+                                    echo '<div class="row">';
+                                    echo '<div class="col-md-6">';
+                                    echo '<p class="mb-1"><i class="fas fa-clock text-muted"></i> Scheduled: ' . date('M d, Y h:i A', strtotime($schedule['schedule_date'] . ' ' . $schedule['schedule_time'])) . '</p>';
+                                    echo '<p class="mb-1"><i class="fas fa-cog text-muted"></i> ' . htmlspecialchars($schedule['service_type']) . '</p>';
+                                    echo '<p class="mb-1"><i class="fas fa-user text-muted"></i> ' . htmlspecialchars($schedule['installer_name']) . '</p>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-6">';
+                                    echo '<p class="mb-1"><i class="fas fa-map-marker-alt text-muted"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 50)) . '...</p>';
+                                    if (!empty($schedule['completed_at'])) {
+                                        echo '<p class="mb-1"><i class="fas fa-check-circle text-success"></i> Completed: ' . date('M d, Y g:i A', strtotime($schedule['completed_at'])) . '</p>';
+                                    }
                                     echo '</div>';
                                     echo '</div>';
-                                    echo '<div class="card-actions">';
-                                    echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View</button>';
-                                    echo '<button class="action-btn btn-secondary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Edit</button>';
+                                    echo '</div>';
+                                    echo '<div class="col-md-4 text-right">';
+                                    if (!empty($schedule['completion_image'])) {
+                                        echo '<img src="../' . htmlspecialchars($schedule['completion_image']) . '" alt="Completion Image" class="completion-thumbnail-large" onclick="viewCompletionImage(\'' . htmlspecialchars($schedule['completion_image']) . '\')">';
+                                        echo '<p class="small text-muted mt-1"><i class="fas fa-camera"></i> Completion Photo</p>';
+                                    }
+                                    echo '<button class="btn btn-primary btn-sm edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View Details</button>';
+                                    echo '</div>';
+                                    echo '</div>';
+                                    echo '</div>';
                                     echo '</div>';
                                     echo '</div>';
                                 }
-                                
+                            } else {
+                                echo '<div class="empty-state">';
+                                echo '<i class="fas fa-search"></i>';
+                                echo '<h4>No Completed Installations Found</h4>';
+                                echo '<p>No completed installations match your filter criteria.</p>';
                                 echo '</div>';
                             }
                         } else {
-                            echo '<div class="empty-state">';
-                            echo '<i class="fas fa-calendar-times"></i>';
-                            echo '<p>No schedules found for this month.</p>';
-                            echo '</div>';
+                            // Show regular list view (grouped by date)
+                            $grouped_schedules = array();
+                            mysqli_data_seek($result, 0);
+                            while ($schedule = mysqli_fetch_assoc($result)) {
+                                $date = $schedule['schedule_date'];
+                                if (!isset($grouped_schedules[$date])) {
+                                    $grouped_schedules[$date] = array();
+                                }
+                                $grouped_schedules[$date][] = $schedule;
+                            }
+                            
+                            ksort($grouped_schedules);
+                            
+                            if (count($grouped_schedules) > 0) {
+                                foreach ($grouped_schedules as $date => $schedules) {
+                                    $date_obj = new DateTime($date);
+                                    $today = new DateTime();
+                                    $tomorrow = new DateTime('+1 day');
+                                    
+                                    $date_label = '';
+                                    if ($date_obj->format('Y-m-d') == $today->format('Y-m-d')) {
+                                        $date_label = 'Today - ' . $date_obj->format('F j, Y');
+                                    } elseif ($date_obj->format('Y-m-d') == $tomorrow->format('Y-m-d')) {
+                                        $date_label = 'Tomorrow - ' . $date_obj->format('F j, Y');
+                                    } else {
+                                        $date_label = $date_obj->format('F j, Y');
+                                    }
+                                    
+                                    echo '<div class="list-group">';
+                                    echo '<div class="list-date"><i class="fas fa-calendar-alt"></i> ' . $date_label . '</div>';
+                                    
+                                    foreach ($schedules as $schedule) {
+                                        $color = '#cbd5e0';
+                                        if ($schedule['status'] == 'Scheduled') $color = '#f6ad55';
+                                        elseif ($schedule['status'] == 'In Progress') $color = '#4299e1';
+                                        elseif ($schedule['status'] == 'Completed') $color = '#48bb78';
+                                        
+                                        // Show completed installations as cards
+                                        if ($schedule['status'] == 'Completed') {
+                                            echo '<div class="completed-card-container mb-3">';
+                                            echo '<div class="card shadow-sm" style="border-left: 4px solid ' . $color . ';">';
+                                            echo '<div class="card-body">';
+                                            echo '<div class="row">';
+                                            echo '<div class="col-md-8">';
+                                            echo '<h5 class="card-title text-primary">' . htmlspecialchars($schedule['customer_name']) . '</h5>';
+                                            echo '<div class="row">';
+                                            echo '<div class="col-md-6">';
+                                            echo '<p class="mb-1"><i class="fas fa-clock text-muted"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</p>';
+                                            echo '<p class="mb-1"><i class="fas fa-cog text-muted"></i> ' . htmlspecialchars($schedule['service_type']) . '</p>';
+                                            echo '<p class="mb-1"><i class="fas fa-user text-muted"></i> ' . htmlspecialchars($schedule['installer_name']) . '</p>';
+                                            echo '</div>';
+                                            echo '<div class="col-md-6">';
+                                            echo '<p class="mb-1"><i class="fas fa-map-marker-alt text-muted"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 50)) . '...</p>';
+                                            if (!empty($schedule['completed_at'])) {
+                                                echo '<p class="mb-1"><i class="fas fa-check-circle text-success"></i> Completed: ' . date('M d, Y g:i A', strtotime($schedule['completed_at'])) . '</p>';
+                                            }
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '<div class="col-md-4 text-right">';
+                                            if (!empty($schedule['completion_image'])) {
+                                                echo '<img src="../' . htmlspecialchars($schedule['completion_image']) . '" alt="Completion Image" class="completion-thumbnail-large" onclick="viewCompletionImage(\'' . htmlspecialchars($schedule['completion_image']) . '\')">';
+                                                echo '<p class="small text-muted mt-1"><i class="fas fa-camera"></i> Completion Photo</p>';
+                                            }
+                                            echo '<button class="btn btn-primary btn-sm edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View Details</button>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                        } else {
+                                            // Show other statuses as list items
+                                            echo '<div class="list-item" style="border-color: ' . $color . ';">';
+                                            echo '<div class="list-info">';
+                                            echo '<div class="list-customer">' . htmlspecialchars($schedule['customer_name']) . '</div>';
+                                            echo '<div class="list-details">';
+                                            echo '<div class="list-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
+                                            echo '<div class="list-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                            echo '<div class="list-detail"><i class="fas fa-user"></i> ' . (!empty($schedule['installer_name']) ? htmlspecialchars($schedule['installer_name']) : 'Unassigned') . '</div>';
+                                            echo '<div class="list-detail"><i class="fas fa-map-marker-alt"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 40)) . '...</div>';
+                                            echo '<div class="list-detail"><i class="fas fa-info-circle"></i> ' . htmlspecialchars($schedule['status']) . '</div>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                            echo '<div class="card-actions">';
+                                            echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View</button>';
+                                            echo '<button class="action-btn btn-secondary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Edit</button>';
+                                            echo '</div>';
+                                            echo '</div>';
+                                        }
+                                    }
+                                    
+                                    echo '</div>';
+                                }
+                            } else {
+                                echo '<div class="empty-state">';
+                                echo '<i class="fas fa-calendar-times"></i>';
+                                echo '<p>No schedules found for this month.</p>';
+                                echo '</div>';
+                            }
                         }
                         ?>
                     </div>
@@ -1144,7 +1375,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <?php
                                     mysqli_data_seek($installers_result, 0);
                                     while ($installer = mysqli_fetch_assoc($installers_result)) {
-                                        echo "<option value='" . htmlspecialchars($installer['installer_name']) . "'>" . htmlspecialchars($installer['installer_name']) . "</option>";
+                                        echo "<option value='" . htmlspecialchars($installer['full_name']) . "'>" . htmlspecialchars($installer['full_name']) . "</option>";
                                     }
                                     ?>
                                 </select>
@@ -1213,6 +1444,28 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
     </div>
 </div>
 
+<!-- Completion Image Modal -->
+<div class="modal fade completion-image-modal" id="completionImageModal" tabindex="-1" role="dialog" aria-labelledby="completionImageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="completionImageModalLabel">
+                    <i class="fas fa-camera mr-2"></i>Completion Photo
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <img id="completionImageDisplay" src="" alt="Completion Image" class="img-fluid">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Edit Schedule Modal -->
 <div class="modal fade" id="editScheduleModal" tabindex="-1" role="dialog" aria-labelledby="editScheduleModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document">
@@ -1235,7 +1488,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <?php
                                     mysqli_data_seek($installers_result, 0);
                                     while ($installer = mysqli_fetch_assoc($installers_result)) {
-                                        echo "<option value='" . htmlspecialchars($installer['installer_name']) . "'>" . htmlspecialchars($installer['installer_name']) . "</option>";
+                                        echo "<option value='" . htmlspecialchars($installer['full_name']) . "'>" . htmlspecialchars($installer['full_name']) . "</option>";
                                     }
                                     ?>
                                 </select>
@@ -1311,6 +1564,21 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         <label for="edit_notes">Additional Notes</label>
                         <textarea class="form-control" id="edit_notes" name="notes" rows="2"></textarea>
                     </div>
+
+                    <!-- Completion Image Display -->
+                    <div id="completion_image_section" class="form-group" style="display: none;">
+                        <label>Completion Photo</label>
+                        <div class="completion-image-display">
+                            <img id="edit_completion_image" src="" alt="Completion Image" class="img-fluid rounded" style="max-height: 300px; cursor: pointer;" onclick="viewCompletionImageFromModal()">
+                            <p class="text-muted mt-2"><i class="fas fa-camera"></i> Click image to view full size</p>
+                        </div>
+                    </div>
+
+                    <!-- Completion Date Display -->
+                    <div id="completion_date_section" class="form-group" style="display: none;">
+                        <label>Completion Date</label>
+                        <p class="form-control-plaintext" id="edit_completed_at"></p>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
@@ -1335,6 +1603,9 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 
 <script>
 $(document).ready(function() {
+    // Ensure completed filter is hidden on initial load
+    $('#completed-filter-card').hide();
+
     // View Toggle Functionality
     $('.view-btn').click(function() {
         $('.view-btn').removeClass('active');
@@ -1345,10 +1616,19 @@ $(document).ready(function() {
         const view = $(this).data('view');
         if (view === 'calendar') {
             $('#calendar-view').show();
+            $('.stats-grid').show();
+            $('.filter-card').show();
+            $('#completed-filter-card').hide();
         } else if (view === 'kanban') {
             $('#kanban-view').css('display', 'flex').show();
+            $('.stats-grid').show();
+            $('.filter-card').show();
+            $('#completed-filter-card').hide();
         } else if (view === 'list') {
             $('#list-view').show();
+            $('.stats-grid').hide();
+            $('.filter-card').hide();
+            $('#completed-filter-card').show();
         }
     });
 
@@ -1407,6 +1687,21 @@ $(document).ready(function() {
                     $('#edit_notes').val(response.data.notes);
                     $('#edit_status').val(response.data.status);
                     
+                    // Handle completion image and date
+                    if (response.data.status === 'Completed' && response.data.completion_image) {
+                        $('#edit_completion_image').attr('src', '../' + response.data.completion_image);
+                        $('#completion_image_section').show();
+                    } else {
+                        $('#completion_image_section').hide();
+                    }
+                    
+                    if (response.data.status === 'Completed' && response.data.completed_at) {
+                        $('#edit_completed_at').text(new Date(response.data.completed_at).toLocaleString());
+                        $('#completion_date_section').show();
+                    } else {
+                        $('#completion_date_section').hide();
+                    }
+                    
                     $('#editScheduleModal').modal('show');
                 } else {
                     showNotification('Error loading schedule data: ' + response.message, 'error');
@@ -1417,6 +1712,19 @@ $(document).ready(function() {
             }
         });
     });
+
+    // Function to view completion image
+    function viewCompletionImage(imagePath) {
+        $('#completionImageDisplay').attr('src', '../' + imagePath);
+        $('#completionImageModal').modal('show');
+    }
+
+    // Function to view completion image from edit modal
+    function viewCompletionImageFromModal() {
+        const imageSrc = $('#edit_completion_image').attr('src');
+        $('#completionImageDisplay').attr('src', imageSrc);
+        $('#completionImageModal').modal('show');
+    }
 
     // Handle edit form submission
     $('#editScheduleForm').submit(function(e) {
