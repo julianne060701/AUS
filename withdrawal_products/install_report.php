@@ -4,111 +4,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php"); 
     exit(); 
 } 
-include '../config/conn.php';
-
-// Handle server-side PDF generation
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate_pdf') {
-    // Get selected sections
-    $selectedSections = json_decode($_POST['sections'], true);
-    $filter = $_POST['filter'] ?? 'overall';
-    $start_date = $_POST['start_date'] ?? '';
-    $end_date = $_POST['end_date'] ?? '';
-    
-    // Build date condition
-    $date_condition = "";
-    $params = [];
-    $param_types = "";
-    
-    switch($filter) {
-        case 'today':
-            $date_condition = "WHERE DATE(schedule_date) = CURDATE()";
-            break;
-        case 'week':
-            $date_condition = "WHERE schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
-            break;
-        case 'month':
-            $date_condition = "WHERE MONTH(schedule_date) = MONTH(CURDATE()) AND YEAR(schedule_date) = YEAR(CURDATE())";
-            break;
-        case 'year':
-            $date_condition = "WHERE YEAR(schedule_date) = YEAR(CURDATE())";
-            break;
-        case 'custom':
-            if($start_date && $end_date) {
-                $date_condition = "WHERE schedule_date BETWEEN ? AND ?";
-                $params = [$start_date, $end_date];
-                $param_types = "ss";
-            }
-            break;
-        case 'overall':
-        default:
-            $date_condition = "";
-            break;
-    }
-    
-    // Get data
-    $summary_query = "SELECT 
-        COUNT(*) as total_schedules,
-        COUNT(CASE WHEN status = 'Scheduled' THEN 1 END) as scheduled_count,
-        COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_count,
-        COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_count,
-        COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled_count,
-        COUNT(DISTINCT installer_name) as unique_installers
-    FROM installer_schedules 
-    $date_condition";
-    
-    if(!empty($params)) {
-        $stmt = $conn->prepare($summary_query);
-        $stmt->bind_param($param_types, ...$params);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $summary = $result->fetch_assoc();
-    } else {
-        $result = $conn->query($summary_query);
-        $summary = $result->fetch_assoc();
-    }
-    
-    // Generate simple HTML report
-    $html = '<!DOCTYPE html>
-    <html>
-    <head>
-        <meta charset="UTF-8">
-        <title>Installation Report</title>
-        <style>
-            body { font-family: Arial, sans-serif; margin: 20px; }
-            h1 { color: #333; }
-            h2 { color: #666; margin-top: 30px; }
-            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #f2f2f2; }
-            .summary { background-color: #e7f3ff; }
-        </style>
-    </head>
-    <body>
-        <h1>Professional Installation Report</h1>
-        <p><strong>Generated:</strong> ' . date('Y-m-d H:i:s') . '</p>
-        <p><strong>Period:</strong> ' . $filter . '</p>';
-    
-    if ($selectedSections['summary']) {
-        $html .= '<h2>Summary</h2>
-        <table class="summary">
-            <tr><th>Metric</th><th>Value</th></tr>
-            <tr><td>Total Schedules</td><td>' . number_format($summary['total_schedules'] ?? 0) . '</td></tr>
-            <tr><td>Completed</td><td>' . number_format($summary['completed_count'] ?? 0) . '</td></tr>
-            <tr><td>In Progress</td><td>' . number_format($summary['in_progress_count'] ?? 0) . '</td></tr>
-            <tr><td>Scheduled</td><td>' . number_format($summary['scheduled_count'] ?? 0) . '</td></tr>
-            <tr><td>Cancelled</td><td>' . number_format($summary['cancelled_count'] ?? 0) . '</td></tr>
-            <tr><td>Active Installers</td><td>' . number_format($summary['unique_installers'] ?? 0) . '</td></tr>
-        </table>';
-    }
-    
-    $html .= '</body></html>';
-    
-    // Set headers for PDF download
-    header('Content-Type: text/html');
-    header('Content-Disposition: attachment; filename="Installation_Report_' . date('Y-m-d') . '.html"');
-    echo $html;
-    exit();
-} 
+include '../config/conn.php'; 
 
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'overall';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
@@ -243,15 +139,21 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
 <html lang="en"> 
 <head> 
     <?php include('../includes/header.php'); ?> 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <!-- Load libraries in correct order -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF and plugins - FIXED CDN LINKS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    
     <style>
         .filter-card { background: #f8f9fc; border: 1px solid #e3e6f0; border-radius: 0.35rem; padding: 1.5rem; margin-bottom: 1.5rem; }
         .filter-btn { margin: 0.25rem; }
@@ -268,8 +170,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
         .badge-in-progress { background-color: #17a2b8; color: #fff; }
         .badge-completed { background-color: #28a745; color: #fff; }
         .badge-cancelled { background-color: #dc3545; color: #fff; }
-        .section-checkbox { margin-right: 15px; }
-        .section-checkbox label { font-weight: 500; cursor: pointer; }
         
         /* Professional Tab Styles */
         .nav-tabs { border-bottom: 3px solid #e9ecef; margin-bottom: 2rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.5rem 0.5rem 0 0; padding: 0.5rem 0.5rem 0 0.5rem; }
@@ -314,12 +214,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
         .pagination .page-item.active .page-link { background-color: #667eea; border-color: #667eea; }
         .pagination .page-item.disabled .page-link { color: #6c757d; background-color: #fff; border-color: #dee2e6; }
         
-        /* Data Tables Info */
-        .dataTables_info { color: #6c757d; font-size: 0.875rem; }
-        
-        /* Enhanced Button Styles */
-        .btn-outline-secondary:hover { transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
-        
         /* Professional Badge Styles */
         .badge { font-size: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; font-weight: 600; }
         .badge-scheduled { background: linear-gradient(135deg, #F39C12 0%, #E67E22 100%); color: #fff; }
@@ -331,86 +225,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        /* PDF Download Styles */
-        .pdf-download-btn {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
-        }
-        
-        .pdf-download-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
-            color: white;
-        }
-        
-        .pdf-download-btn i {
-            margin-right: 0.5rem;
-        }
-        
-        /* Print/PDF specific styles */
-        @media print {
-            .filter-card, .nav-tabs, .btn, .pagination {
-                display: none !important;
-            }
-            
-            .tab-content {
-                display: block !important;
-            }
-            
-            .tab-pane {
-                display: block !important;
-                page-break-inside: avoid;
-            }
-            
-            .card {
-                border: 1px solid #ddd !important;
-                box-shadow: none !important;
-                margin-bottom: 1rem;
-            }
-            
-            .table {
-                font-size: 0.8rem;
-            }
-            
-            .table th, .table td {
-                border: 1px solid #ddd !important;
-                padding: 0.5rem !important;
-            }
-            
-            .chart-container {
-                height: 200px !important;
-            }
-            
-            .summary-card {
-                border: 1px solid #ddd !important;
-                margin-bottom: 1rem;
-            }
-            
-            .container-fluid {
-                padding: 0 !important;
-            }
-            
-            .row {
-                margin: 0 !important;
-            }
-            
-            .col-xl-3, .col-md-6 {
-                padding: 0.5rem !important;
-            }
-        }
-        
     </style>
 </head> 
 <body id="page-top"> 
@@ -423,12 +237,11 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     <div class="d-sm-flex align-items-center justify-content-between mb-4"> 
                         <h1 class="h3 mb-0 text-gray-800">Installation Report</h1>
                         <div>
-                            <button type="button" class="btn pdf-download-btn" data-bs-toggle="modal" data-bs-target="#pdfOptionsModal">
+                            <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#pdfOptionsModal">
                                 <i class="fas fa-file-pdf"></i> Download PDF
                             </button>
                         </div>
                     </div>
-
 
                     <div class="filter-card">
                         <h5 class="mb-3">Filter Installation Data</h5>
@@ -461,9 +274,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     </div>
 
                     <div id="printableArea">
+                        <!-- Rest of your HTML content remains the same -->
+                        <!-- I'm keeping your existing tab structure here -->
 
-                        <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
+
+                         <!-- Tab Navigation -->
+                         <ul class="nav nav-tabs" id="reportTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
                                     <i class="fas fa-chart-pie"></i> Summary
@@ -801,14 +617,14 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <!-- PDF Download Options Modal -->
-    <div class="modal fade" id="pdfOptionsModal" tabindex="-1" aria-labelledby="pdfOptionsModalLabel" aria-hidden="true">
+    <div class="modal fade" id="pdfOptionsModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="pdfOptionsModalLabel">
+                    <h5 class="modal-title">
                         <i class="fas fa-file-pdf text-success"></i> PDF Download Options
                     </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-4">
@@ -822,14 +638,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                 <label class="form-check-label" for="includeSummary">
                                     <i class="fas fa-chart-pie text-primary"></i> <strong>Summary</strong>
                                     <small class="text-muted d-block">Key metrics and statistics</small>
-                                </label>
-                            </div>
-                            
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="includeTrends">
-                                <label class="form-check-label" for="includeTrends">
-                                    <i class="fas fa-chart-line text-info"></i> <strong>Installation Trends</strong>
-                                    <small class="text-muted d-block">Charts and trend analysis</small>
                                 </label>
                             </div>
                             
@@ -855,20 +663,11 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                 <input class="form-check-input" type="checkbox" id="includeDetailed">
                                 <label class="form-check-label" for="includeDetailed">
                                     <i class="fas fa-list text-success"></i> <strong>Detailed Schedules</strong>
-                                    <small class="text-muted d-block">Complete installation records (<?= count($install_data) ?> records)</small>
-                                </label>
-                            </div>
-                            
-                            <div class="form-check mb-3">
-                                <input class="form-check-input" type="checkbox" id="includeCharts">
-                                <label class="form-check-label" for="includeCharts">
-                                    <i class="fas fa-chart-bar text-danger"></i> <strong>Charts & Graphs</strong>
-                                    <small class="text-muted d-block">Visual data representations</small>
+                                    <small class="text-muted d-block">Complete installation records</small>
                                 </label>
                             </div>
                         </div>
                     </div>
-                    
                     <div class="alert alert-info mt-4">
                         <i class="fas fa-info-circle"></i>
                         <strong>Note:</strong> The PDF will be generated in landscape orientation on letter/short bond paper size for optimal table viewing.
@@ -877,1066 +676,81 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-success" onclick="generateSelectedPDF()">
-                        <i class="fas fa-download"></i> Generate PDF (Client-side)
-                    </button>
-                    <button type="button" class="btn btn-primary" onclick="generateServerPDF()">
-                        <i class="fas fa-server"></i> Generate PDF (Server-side)
+                        <i class="fas fa-download"></i> Generate PDF
                     </button>
                 </div>
             </div>
         </div>
     </div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        
-        // Debug function to check PDF libraries
-        function checkPDFLibraries() {
-            console.log('Checking PDF libraries...');
-            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
-            if (typeof window.jspdf !== 'undefined') {
-                console.log('autoTable available:', typeof window.jspdf.jsPDF.prototype.autoTable !== 'undefined');
-            }
-            console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
-        }
-        
-        // Run check when page loads
-        window.addEventListener('load', checkPDFLibraries);
-        
-        function getPeriodText() {
-            const filter = '<?= $filter ?>';
-            const startDate = '<?= $start_date ?>';
-            const endDate = '<?= $end_date ?>';
-            
-            switch(filter) {
-                case 'today': return 'Today';
-                case 'week': return 'This Week';
-                case 'month': return 'This Month';
-                case 'year': return 'This Year';
-                case 'custom': return startDate + ' to ' + endDate;
-                default: return 'Overall';
-            }
-        }
-
-        function toggleCustomDate() {
-            document.getElementById('customDateRange').style.display = 'flex';
-            document.querySelectorAll('button.filter-btn').forEach(btn => btn.classList.remove('active'));
-        }
-
-        // Tab persistence functions
-        function saveActiveTab(tabId) {
-            localStorage.setItem('installReportActiveTab', tabId);
-        }
-
-        function getActiveTab() {
-            return localStorage.getItem('installReportActiveTab') || 'summary';
-        }
-
-        function restoreActiveTab() {
-            const activeTabId = getActiveTab();
-            const tabButton = document.getElementById(activeTabId + '-tab');
-            const tabPane = document.getElementById(activeTabId);
-            
-            if (tabButton && tabPane) {
-                // Remove active class from all tabs
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.remove('active');
-                    link.setAttribute('aria-selected', 'false');
-                });
-                
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.remove('show', 'active');
-                });
-                
-                // Activate the saved tab
-                tabButton.classList.add('active');
-                tabButton.setAttribute('aria-selected', 'true');
-                tabPane.classList.add('show', 'active');
-            }
-        }
-
-        // Initialize all sections as printable
-        document.addEventListener('DOMContentLoaded', function() {
-            // Restore active tab first
-            restoreActiveTab();
-            
-            // Add click listeners to all tab buttons
-            document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(link => {
-                link.addEventListener('click', function() {
-                    const tabId = this.getAttribute('data-bs-target').replace('#', '');
-                    saveActiveTab(tabId);
-                });
-            });
-            
-            
-            
-            // Initialize detailed table functionality
-            initializeDetailedTable();
-        });
-
-        // Detailed Table Management
-        let allTableData = [];
-        let filteredData = [];
-        let currentPage = 1;
-        let rowsPerPage = 25;
-        let sortColumn = -1;
-        let sortDirection = 'asc';
-
-        function initializeDetailedTable() {
-            // Store original data
-            const tableBody = document.getElementById('detailedTableBody');
-            if (!tableBody) return;
-            
-            const rows = tableBody.querySelectorAll('tr');
-            allTableData = [];
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length > 0 && cells.length >= 12) {
-                    // Skip "no data" rows
-                    const firstCellText = cells[0].textContent.trim();
-                    if (firstCellText && !firstCellText.includes('No installation') && !firstCellText.includes('No data')) {
-                        // Get the original data from PHP variables to avoid truncation
-                        const rowId = parseInt(cells[0].textContent.trim());
-                        const originalData = <?php echo json_encode($install_data); ?>;
-                        const originalRow = originalData.find(item => item.id == rowId);
-                        
-                        allTableData.push({
-                            id: cells[0].textContent.trim(),
-                            installer: cells[1].textContent.trim(),
-                            customer: cells[2].textContent.trim(),
-                            contact: cells[3].textContent.trim(),
-                            address: originalRow ? originalRow.address : cells[4].textContent.trim(),
-                            scheduleDate: cells[5].textContent.trim(),
-                            time: cells[6].textContent.trim(),
-                            serviceType: cells[7].textContent.trim(),
-                            status: cells[8].textContent.trim(),
-                            products: originalRow ? originalRow.products_to_install : cells[9].textContent.trim(),
-                            notes: originalRow ? originalRow.notes : cells[10].textContent.trim(),
-                            created: cells[11].textContent.trim(),
-                            originalRow: row.cloneNode(true)
-                        });
-                    }
-                }
-            });
-            
-            filteredData = [...allTableData];
-            
-            // Only update table if we have data
-            if (allTableData.length > 0) {
-                updateTable();
-            }
-            
-            // Add event listeners
-            const searchInput = document.getElementById('searchInput');
-            const statusFilter = document.getElementById('statusFilter');
-            const installerFilter = document.getElementById('installerFilter');
-            const serviceFilter = document.getElementById('serviceFilter');
-            const rowsPerPageSelect = document.getElementById('rowsPerPage');
-            
-            if (searchInput) searchInput.addEventListener('input', filterTable);
-            if (statusFilter) statusFilter.addEventListener('change', filterTable);
-            if (installerFilter) installerFilter.addEventListener('change', filterTable);
-            if (serviceFilter) serviceFilter.addEventListener('change', filterTable);
-            if (rowsPerPageSelect) {
-                rowsPerPageSelect.addEventListener('change', function() {
-                    rowsPerPage = parseInt(this.value);
-                    currentPage = 1;
-                    updateTable();
-                });
-            }
-        }
-
-        function filterTable() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const installerFilter = document.getElementById('installerFilter').value;
-            const serviceFilter = document.getElementById('serviceFilter').value;
-            
-            filteredData = allTableData.filter(row => {
-                const matchesSearch = !searchTerm || 
-                    row.customer.toLowerCase().includes(searchTerm) ||
-                    row.installer.toLowerCase().includes(searchTerm) ||
-                    row.address.toLowerCase().includes(searchTerm) ||
-                    row.products.toLowerCase().includes(searchTerm) ||
-                    row.notes.toLowerCase().includes(searchTerm);
-                
-                const matchesStatus = !statusFilter || row.status.includes(statusFilter);
-                const matchesInstaller = !installerFilter || row.installer === installerFilter;
-                const matchesService = !serviceFilter || row.serviceType === serviceFilter;
-                
-                return matchesSearch && matchesStatus && matchesInstaller && matchesService;
-            });
-            
-            currentPage = 1;
-            updateTable();
-        }
-
-        function sortTable(columnIndex) {
-            if (sortColumn === columnIndex) {
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortColumn = columnIndex;
-                sortDirection = 'asc';
-            }
-            
-            const columnNames = ['id', 'installer', 'customer', 'contact', 'address', 'scheduleDate', 'time', 'serviceType', 'status', 'products', 'notes', 'created'];
-            const columnName = columnNames[columnIndex];
-            
-            filteredData.sort((a, b) => {
-                let aVal = a[columnName];
-                let bVal = b[columnName];
-                
-                // Handle numeric sorting for ID
-                if (columnName === 'id') {
-                    aVal = parseInt(aVal);
-                    bVal = parseInt(bVal);
-                }
-                
-                if (sortDirection === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
-            });
-            
-            updateTable();
-            updateSortIcons();
-        }
-
-        function updateSortIcons() {
-            const headers = document.querySelectorAll('#detailedTable th');
-            headers.forEach((header, index) => {
-                const icon = header.querySelector('i');
-                if (icon) {
-                    icon.className = 'fas fa-sort';
-                    if (index === sortColumn) {
-                        icon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                    }
-                }
-            });
-        }
-
-        function updateTable() {
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
-            
-            const tableBody = document.getElementById('detailedTableBody');
-            tableBody.innerHTML = '';
-            
-            if (pageData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data found</td></tr>';
-            } else {
-                pageData.forEach(row => {
-                    tableBody.appendChild(row.originalRow.cloneNode(true));
-                });
-            }
-            
-            updatePagination();
-            updateRecordCounts();
-        }
-
-        function updatePagination() {
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Previous button
-            const prevLi = document.createElement('li');
-            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
-            pagination.appendChild(prevLi);
-            
-            // Page numbers
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-            
-            if (startPage > 1) {
-                const firstLi = document.createElement('li');
-                firstLi.className = 'page-item';
-                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
-                pagination.appendChild(firstLi);
-                
-                if (startPage > 2) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const li = document.createElement('li');
-                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
-                pagination.appendChild(li);
-            }
-            
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-                
-                const lastLi = document.createElement('li');
-                lastLi.className = 'page-item';
-                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
-                pagination.appendChild(lastLi);
-            }
-            
-            // Next button
-            const nextLi = document.createElement('li');
-            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
-            pagination.appendChild(nextLi);
-        }
-
-        function changePage(page) {
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            if (page >= 1 && page <= totalPages) {
-                currentPage = page;
-            updateTable();
-            }
-        }
-
-        function updateRecordCounts() {
-            const startIndex = (currentPage - 1) * rowsPerPage + 1;
-            const endIndex = Math.min(currentPage * rowsPerPage, filteredData.length);
-            
-            document.getElementById('showingStart').textContent = filteredData.length > 0 ? startIndex : 0;
-            document.getElementById('showingEnd').textContent = endIndex;
-            document.getElementById('totalFiltered').textContent = filteredData.length;
-            document.getElementById('totalRecords').textContent = allTableData.length;
-        }
-
-        // Sorting functions for other tables
-        function sortInstallerTable(columnIndex) {
-            sortGenericTable('installerTable', columnIndex);
-        }
-
-        function sortServiceTable(columnIndex) {
-            sortGenericTable('serviceTable', columnIndex);
-        }
-
-        function sortGenericTable(tableId, columnIndex) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            // Skip if no data
-            if (rows.length === 0 || rows[0].cells.length <= 1) return;
-            
-            // Determine sort direction
-            const currentDirection = table.getAttribute('data-sort-direction') || 'asc';
-            const currentColumn = parseInt(table.getAttribute('data-sort-column') || -1);
-            
-            let direction = 'asc';
-            if (currentColumn === columnIndex) {
-                direction = currentDirection === 'asc' ? 'desc' : 'asc';
-            }
-            
-            table.setAttribute('data-sort-column', columnIndex);
-            table.setAttribute('data-sort-direction', direction);
-            
-            // Sort rows
-            rows.sort((a, b) => {
-                let aVal = a.cells[columnIndex].textContent.trim();
-                let bVal = b.cells[columnIndex].textContent.trim();
-                
-                // Remove % sign for percentage comparisons
-                if (aVal.includes('%')) {
-                    aVal = parseFloat(aVal.replace('%', ''));
-                    bVal = parseFloat(bVal.replace('%', ''));
-                }
-                // Try to parse as number
-                else if (!isNaN(aVal) && !isNaN(bVal)) {
-                    aVal = parseFloat(aVal);
-                    bVal = parseFloat(bVal);
-                }
-                
-                if (direction === 'asc') {
-                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-                } else {
-                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-                }
-            });
-            
-            // Re-append sorted rows
-            rows.forEach(row => tbody.appendChild(row));
-            
-            // Update sort icons
-            const headers = table.querySelectorAll('th');
-            headers.forEach((header, index) => {
-                const icon = header.querySelector('i');
-                if (icon) {
-                    icon.className = 'fas fa-sort';
-                    if (index === columnIndex) {
-                        icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                    }
-                }
-            });
-        }
-
-        // Chart.js data and initialization
-        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['install_date'])); }, $chart_data)); ?>;
-        const chartData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_schedules'))); ?>;
-        const completedData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_completed'))); ?>;
-        const serviceLabels = <?php echo json_encode(array_column($service_data, 'service_type')); ?>;
-        const serviceData = <?php echo json_encode(array_map('intval', array_column($service_data, 'total_count'))); ?>;
-
-        const trendCtx = document.getElementById('installTrendChart').getContext('2d');
-        const trendChart = new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: 'Total Schedules',
-                    data: chartData,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                    tension: 0.1,
-                    fill: true
-                }, {
-                    label: 'Completed',
-                    data: completedData,
-                    borderColor: 'rgb(40, 167, 69)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    tension: 0.1,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-        const serviceChart = new Chart(serviceCtx, {
-            type: 'doughnut',
-            data: {
-                labels: serviceLabels,
-                datasets: [{
-                    data: serviceData,
-                    backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // Tab persistence functions
-        function saveActiveTab(tabId) {
-            localStorage.setItem('installReportActiveTab', tabId);
-        }
-
-        function getActiveTab() {
-            return localStorage.getItem('installReportActiveTab') || 'summary';
-        }
-
-        function restoreActiveTab() {
-            const activeTabId = getActiveTab();
-            const tabButton = document.getElementById(activeTabId + '-tab');
-            const tabPane = document.getElementById(activeTabId);
-            
-            if (tabButton && tabPane) {
-                // Remove active class from all tabs
-                document.querySelectorAll('.nav-link').forEach(link => {
-                    link.classList.remove('active');
-                    link.setAttribute('aria-selected', 'false');
-                });
-                
-                document.querySelectorAll('.tab-pane').forEach(pane => {
-                    pane.classList.remove('show', 'active');
-                });
-                
-                // Activate the saved tab
-                tabButton.classList.add('active');
-                tabButton.setAttribute('aria-selected', 'true');
-                tabPane.classList.add('show', 'active');
-            }
-        }
-
-        // Initialize all sections as printable
-        document.addEventListener('DOMContentLoaded', function() {
-            // Restore active tab first
-            restoreActiveTab();
-            
-            // Add click listeners to all tab buttons
-            document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(link => {
-                link.addEventListener('click', function() {
-                    const tabId = this.getAttribute('data-bs-target').replace('#', '');
-                    saveActiveTab(tabId);
-                });
-            });
-            
-            
-            
-            // Initialize detailed table functionality
-            initializeDetailedTable();
-        });
-
-        // Detailed Table Management
-        let allTableData = [];
-        let filteredData = [];
-        let currentPage = 1;
-        let rowsPerPage = 25;
-        let sortColumn = -1;
-        let sortDirection = 'asc';
-
-        function initializeDetailedTable() {
-            // Store original data
-            const tableBody = document.getElementById('detailedTableBody');
-            if (!tableBody) return;
-            
-            const rows = tableBody.querySelectorAll('tr');
-            allTableData = [];
-            
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length > 0 && cells.length >= 12) {
-                    // Skip "no data" rows
-                    const firstCellText = cells[0].textContent.trim();
-                    if (firstCellText && !firstCellText.includes('No installation') && !firstCellText.includes('No data')) {
-                        // Get the original data from PHP variables to avoid truncation
-                        const rowId = parseInt(cells[0].textContent.trim());
-                        const originalData = <?php echo json_encode($install_data); ?>;
-                        const originalRow = originalData.find(item => item.id == rowId);
-                        
-                        allTableData.push({
-                            id: cells[0].textContent.trim(),
-                            installer: cells[1].textContent.trim(),
-                            customer: cells[2].textContent.trim(),
-                            contact: cells[3].textContent.trim(),
-                            address: originalRow ? originalRow.address : cells[4].textContent.trim(),
-                            scheduleDate: cells[5].textContent.trim(),
-                            time: cells[6].textContent.trim(),
-                            serviceType: cells[7].textContent.trim(),
-                            status: cells[8].textContent.trim(),
-                            products: originalRow ? originalRow.products_to_install : cells[9].textContent.trim(),
-                            notes: originalRow ? originalRow.notes : cells[10].textContent.trim(),
-                            created: cells[11].textContent.trim(),
-                            originalRow: row.cloneNode(true)
-                        });
-                    }
-                }
-            });
-            
-            filteredData = [...allTableData];
-            
-            // Only update table if we have data
-            if (allTableData.length > 0) {
-                updateTable();
-            }
-            
-            // Add event listeners
-            const searchInput = document.getElementById('searchInput');
-            const statusFilter = document.getElementById('statusFilter');
-            const installerFilter = document.getElementById('installerFilter');
-            const serviceFilter = document.getElementById('serviceFilter');
-            const rowsPerPageSelect = document.getElementById('rowsPerPage');
-            
-            if (searchInput) searchInput.addEventListener('input', filterTable);
-            if (statusFilter) statusFilter.addEventListener('change', filterTable);
-            if (installerFilter) installerFilter.addEventListener('change', filterTable);
-            if (serviceFilter) serviceFilter.addEventListener('change', filterTable);
-            if (rowsPerPageSelect) {
-                rowsPerPageSelect.addEventListener('change', function() {
-                    rowsPerPage = parseInt(this.value);
-                    currentPage = 1;
-                    updateTable();
-                });
-            }
-        }
-
-        function filterTable() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const statusFilter = document.getElementById('statusFilter').value;
-            const installerFilter = document.getElementById('installerFilter').value;
-            const serviceFilter = document.getElementById('serviceFilter').value;
-            
-            filteredData = allTableData.filter(row => {
-                const matchesSearch = !searchTerm || 
-                    row.customer.toLowerCase().includes(searchTerm) ||
-                    row.installer.toLowerCase().includes(searchTerm) ||
-                    row.address.toLowerCase().includes(searchTerm) ||
-                    row.products.toLowerCase().includes(searchTerm) ||
-                    row.notes.toLowerCase().includes(searchTerm);
-                
-                const matchesStatus = !statusFilter || row.status.includes(statusFilter);
-                const matchesInstaller = !installerFilter || row.installer === installerFilter;
-                const matchesService = !serviceFilter || row.serviceType === serviceFilter;
-                
-                return matchesSearch && matchesStatus && matchesInstaller && matchesService;
-            });
-            
-            currentPage = 1;
-            updateTable();
-        }
-
-        function sortTable(columnIndex) {
-            if (sortColumn === columnIndex) {
-                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortColumn = columnIndex;
-                sortDirection = 'asc';
-            }
-            
-            const columnNames = ['id', 'installer', 'customer', 'contact', 'address', 'scheduleDate', 'time', 'serviceType', 'status', 'products', 'notes', 'created'];
-            const columnName = columnNames[columnIndex];
-            
-            filteredData.sort((a, b) => {
-                let aVal = a[columnName];
-                let bVal = b[columnName];
-                
-                // Handle numeric sorting for ID
-                if (columnName === 'id') {
-                    aVal = parseInt(aVal);
-                    bVal = parseInt(bVal);
-                }
-                
-                if (sortDirection === 'asc') {
-                    return aVal > bVal ? 1 : -1;
-                } else {
-                    return aVal < bVal ? 1 : -1;
-                }
-            });
-            
-            updateTable();
-            updateSortIcons();
-        }
-
-        function updateSortIcons() {
-            const headers = document.querySelectorAll('#detailedTable th');
-            headers.forEach((header, index) => {
-                const icon = header.querySelector('i');
-                if (icon) {
-                    icon.className = 'fas fa-sort';
-                    if (index === sortColumn) {
-                        icon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                    }
-                }
-            });
-        }
-
-        function updateTable() {
-            const startIndex = (currentPage - 1) * rowsPerPage;
-            const endIndex = startIndex + rowsPerPage;
-            const pageData = filteredData.slice(startIndex, endIndex);
-            
-            const tableBody = document.getElementById('detailedTableBody');
-            tableBody.innerHTML = '';
-            
-            if (pageData.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data found</td></tr>';
-            } else {
-                pageData.forEach(row => {
-                    tableBody.appendChild(row.originalRow.cloneNode(true));
-                });
-            }
-            
-            updatePagination();
-            updateRecordCounts();
-        }
-
-        function updatePagination() {
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            const pagination = document.getElementById('pagination');
-            pagination.innerHTML = '';
-            
-            if (totalPages <= 1) return;
-            
-            // Previous button
-            const prevLi = document.createElement('li');
-            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
-            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
-            pagination.appendChild(prevLi);
-            
-            // Page numbers
-            const startPage = Math.max(1, currentPage - 2);
-            const endPage = Math.min(totalPages, currentPage + 2);
-            
-            if (startPage > 1) {
-                const firstLi = document.createElement('li');
-                firstLi.className = 'page-item';
-                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
-                pagination.appendChild(firstLi);
-                
-                if (startPage > 2) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-            }
-            
-            for (let i = startPage; i <= endPage; i++) {
-                const li = document.createElement('li');
-                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
-                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
-                pagination.appendChild(li);
-            }
-            
-            if (endPage < totalPages) {
-                if (endPage < totalPages - 1) {
-                    const ellipsisLi = document.createElement('li');
-                    ellipsisLi.className = 'page-item disabled';
-                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
-                    pagination.appendChild(ellipsisLi);
-                }
-                
-                const lastLi = document.createElement('li');
-                lastLi.className = 'page-item';
-                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
-                pagination.appendChild(lastLi);
-            }
-            
-            // Next button
-            const nextLi = document.createElement('li');
-            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
-            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
-            pagination.appendChild(nextLi);
-        }
-
-        function changePage(page) {
-            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
-            if (page >= 1 && page <= totalPages) {
-                currentPage = page;
-                updateTable();
-            }
-        }
-
-        function updateRecordCounts() {
-            const startIndex = (currentPage - 1) * rowsPerPage + 1;
-            const endIndex = Math.min(currentPage * rowsPerPage, filteredData.length);
-            
-            document.getElementById('showingStart').textContent = filteredData.length > 0 ? startIndex : 0;
-            document.getElementById('showingEnd').textContent = endIndex;
-            document.getElementById('totalFiltered').textContent = filteredData.length;
-            document.getElementById('totalRecords').textContent = allTableData.length;
-        }
-
-        // Sorting functions for other tables
-        function sortInstallerTable(columnIndex) {
-            sortGenericTable('installerTable', columnIndex);
-        }
-
-        function sortServiceTable(columnIndex) {
-            sortGenericTable('serviceTable', columnIndex);
-        }
-
-        function sortGenericTable(tableId, columnIndex) {
-            const table = document.getElementById(tableId);
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            
-            // Skip if no data
-            if (rows.length === 0 || rows[0].cells.length <= 1) return;
-            
-            // Determine sort direction
-            const currentDirection = table.getAttribute('data-sort-direction') || 'asc';
-            const currentColumn = parseInt(table.getAttribute('data-sort-column') || -1);
-            
-            let direction = 'asc';
-            if (currentColumn === columnIndex) {
-                direction = currentDirection === 'asc' ? 'desc' : 'asc';
-            }
-            
-            table.setAttribute('data-sort-column', columnIndex);
-            table.setAttribute('data-sort-direction', direction);
-            
-            // Sort rows
-            rows.sort((a, b) => {
-                let aVal = a.cells[columnIndex].textContent.trim();
-                let bVal = b.cells[columnIndex].textContent.trim();
-                
-                // Remove % sign for percentage comparisons
-                if (aVal.includes('%')) {
-                    aVal = parseFloat(aVal.replace('%', ''));
-                    bVal = parseFloat(bVal.replace('%', ''));
-                }
-                // Try to parse as number
-                else if (!isNaN(aVal) && !isNaN(bVal)) {
-                    aVal = parseFloat(aVal);
-                    bVal = parseFloat(bVal);
-                }
-                
-                if (direction === 'asc') {
-                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
-                } else {
-                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
-                }
-            });
-            
-            // Re-append sorted rows
-            rows.forEach(row => tbody.appendChild(row));
-            
-            // Update sort icons
-            const headers = table.querySelectorAll('th');
-            headers.forEach((header, index) => {
-                const icon = header.querySelector('i');
-                if (icon) {
-                    icon.className = 'fas fa-sort';
-                    if (index === columnIndex) {
-                        icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
-                    }
-                }
-            });
-        }
-
-        // Chart.js data and initialization
-        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['install_date'])); }, $chart_data)); ?>;
-        const chartData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_schedules'))); ?>;
-        const completedData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_completed'))); ?>;
-        const serviceLabels = <?php echo json_encode(array_column($service_data, 'service_type')); ?>;
-        const serviceData = <?php echo json_encode(array_map('intval', array_column($service_data, 'total_count'))); ?>;
-
-        const trendCtx = document.getElementById('installTrendChart').getContext('2d');
-        const trendChart = new Chart(trendCtx, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: [{
-                    label: 'Total Schedules',
-                    data: chartData,
-                    borderColor: 'rgb(75, 192, 192)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
-                    tension: 0.1,
-                    fill: true
-                }, {
-                    label: 'Completed',
-                    data: completedData,
-                    borderColor: 'rgb(40, 167, 69)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    tension: 0.1,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: { stepSize: 1 }
-                    }
-                },
-                plugins: {
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': ' + context.parsed.y;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        const serviceCtx = document.getElementById('serviceChart').getContext('2d');
-        const serviceChart = new Chart(serviceCtx, {
-            type: 'doughnut',
-            data: {
-                labels: serviceLabels,
-                datasets: [{
-                    data: serviceData,
-                    backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF']
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'bottom' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return context.label + ': ' + context.parsed;
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        // PDF Download Functionality with Modal Options
+        // FIXED PDF Generation Function
         function generateSelectedPDF() {
-            // Get selected options
-            const selectedSections = {
-                summary: document.getElementById('includeSummary').checked,
-                trends: document.getElementById('includeTrends').checked,
-                installer: document.getElementById('includeInstaller').checked,
-                service: document.getElementById('includeService').checked,
-                detailed: document.getElementById('includeDetailed').checked,
-                charts: document.getElementById('includeCharts').checked
-            };
-            
-            // Check if at least one section is selected
-            const hasSelection = Object.values(selectedSections).some(selected => selected);
-            if (!hasSelection) {
-                alert('Please select at least one section to include in the PDF.');
-                return;
-            }
-            
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
-            modal.hide();
-            
-            // Generate PDF with selected sections
-            downloadPDF(selectedSections);
-        }
-        
-        // Server-side PDF generation (bypasses client-side security issues)
-        function generateServerPDF() {
-            // Get selected options
-            const selectedSections = {
-                summary: document.getElementById('includeSummary').checked,
-                trends: document.getElementById('includeTrends').checked,
-                installer: document.getElementById('includeInstaller').checked,
-                service: document.getElementById('includeService').checked,
-                detailed: document.getElementById('includeDetailed').checked,
-                charts: document.getElementById('includeCharts').checked
-            };
-            
-            // Check if at least one section is selected
-            const hasSelection = Object.values(selectedSections).some(selected => selected);
-            if (!hasSelection) {
-                alert('Please select at least one section to include in the PDF.');
-                return;
-            }
-            
-            // Close modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
-            modal.hide();
-            
-            // Show loading state
-            const downloadBtn = document.querySelector('.btn-primary');
-            const originalText = downloadBtn.innerHTML;
-            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
-            downloadBtn.disabled = true;
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('action', 'generate_pdf');
-            formData.append('sections', JSON.stringify(selectedSections));
-            formData.append('filter', '<?= $filter ?>');
-            formData.append('start_date', '<?= $start_date ?>');
-            formData.append('end_date', '<?= $end_date ?>');
-            
-            // Send request to server
-            fetch('install_report.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.ok) {
-                    return response.blob();
-                }
-                throw new Error('Server error: ' + response.status);
-            })
-            .then(blob => {
-                // Create download link
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Installation_Report_Server_' + new Date().toISOString().split('T')[0] + '.pdf';
-                document.body.appendChild(a);
-                a.click();
-                window.URL.revokeObjectURL(url);
-                document.body.removeChild(a);
-            })
-            .catch(error => {
-                console.error('Server PDF generation error:', error);
-                alert('Error generating PDF: ' + error.message + '\nPlease try the client-side option or check server configuration.');
-            })
-            .finally(() => {
-                // Restore button state
-                downloadBtn.innerHTML = originalText;
-                downloadBtn.disabled = false;
-            });
-        }
-        
-        function downloadPDF(selectedSections = null) {
             try {
-                // Check if jsPDF is available
-                if (typeof window.jspdf === 'undefined') {
-                    alert('PDF library not loaded. Please refresh the page and try again.');
-                    console.error('jsPDF library not found');
+                console.log('Starting PDF generation...');
+                
+                // Get selected options
+                const selectedSections = {
+                    summary: document.getElementById('includeSummary').checked,
+                    installer: document.getElementById('includeInstaller').checked,
+                    service: document.getElementById('includeService').checked,
+                    detailed: document.getElementById('includeDetailed').checked
+                };
+                
+                // Check if at least one section is selected
+                const hasSelection = Object.values(selectedSections).some(selected => selected);
+                if (!hasSelection) {
+                    alert('Please select at least one section to include in the PDF.');
                     return;
                 }
                 
+                // Close modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
+                if (modal) {
+                    modal.hide();
+                }
+                
+                // Generate PDF after a short delay
+                setTimeout(() => downloadPDF(selectedSections), 300);
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error generating PDF: ' + error.message);
+            }
+        }
+
+        function downloadPDF(selectedSections) {
+            try {
+                // Access jsPDF correctly from the UMD module
                 const { jsPDF } = window.jspdf;
                 
-                // Check if autoTable is available
-                if (typeof jsPDF.prototype.autoTable === 'undefined') {
-                    alert('PDF table plugin not loaded. Please refresh the page and try again.');
-                    console.error('jsPDF autoTable plugin not found');
-                    return;
+                if (!jsPDF) {
+                    throw new Error('jsPDF not loaded properly. Please refresh the page.');
                 }
                 
-                const doc = new jsPDF('landscape', 'mm', 'letter'); // Landscape orientation, letter size
-                
-                // Set up fonts and colors
-                doc.setFont('helvetica');
+                console.log('Creating PDF document...');
+                const doc = new jsPDF('landscape', 'mm', 'letter');
                 
                 // Add header
                 doc.setFontSize(20);
                 doc.setTextColor(40, 40, 40);
-                doc.text('Professional Installation Report', 20, 20);
+                doc.text('Installation Report', 20, 20);
                 
-                // Add report details
                 doc.setFontSize(12);
                 doc.setTextColor(100, 100, 100);
                 doc.text('Generated on: ' + new Date().toLocaleString(), 20, 30);
-                
-                // Add period information
-                const periodText = getPeriodText();
-                doc.text('Period: ' + periodText, 20, 36);
+                doc.text('Period: <?= ucfirst($filter) ?>', 20, 36);
                 
                 let currentY = 50;
                 
-                // Add Summary section if selected
-                if (!selectedSections || selectedSections.summary) {
+                // Add Summary section
+                if (selectedSections.summary) {
+                    console.log('Adding Summary...');
                     doc.setFontSize(14);
                     doc.setTextColor(40, 40, 40);
                     doc.text('Summary', 20, currentY);
                     
-                    // Summary data
-                    doc.setFontSize(10);
-                    doc.setTextColor(60, 60, 60);
                     const summaryData = [
                         ['Total Schedules', '<?= number_format($summary['total_schedules'] ?? 0) ?>'],
                         ['Completed', '<?= number_format($summary['completed_count'] ?? 0) ?>'],
@@ -1957,9 +771,17 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     currentY = doc.lastAutoTable.finalY + 15;
                 }
-            
-                // Add Installer Performance table if selected
-                if ((!selectedSections || selectedSections.installer) && <?= count($installer_data) ?> > 0) {
+                
+                // Add Installer Performance
+                if (selectedSections.installer && <?= count($installer_data) ?> > 0) {
+                    console.log('Adding Installer Performance...');
+                    
+                    // Check if we need a new page
+                    if (currentY > 150) {
+                        doc.addPage();
+                        currentY = 20;
+                    }
+                    
                     doc.setFontSize(14);
                     doc.setTextColor(40, 40, 40);
                     doc.text('Installer Performance', 20, currentY);
@@ -1967,16 +789,16 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     const installerData = <?= json_encode($installer_data) ?>.map(item => [
                         item.installer_name || 'N/A',
                         item.total_schedules || '0',
-                        item.scheduled_count || '0',
-                        item.in_progress_count || '0',
                         item.completed_count || '0',
+                        item.in_progress_count || '0',
+                        item.scheduled_count || '0',
                         item.cancelled_count || '0',
                         (item.total_schedules > 0 ? ((item.completed_count / item.total_schedules) * 100).toFixed(1) : '0') + '%'
                     ]);
                     
                     doc.autoTable({
                         startY: currentY + 5,
-                        head: [['Installer', 'Total', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Completion Rate']],
+                        head: [['Installer', 'Total', 'Completed', 'In Progress', 'Scheduled', 'Cancelled', 'Rate']],
                         body: installerData,
                         theme: 'grid',
                         headStyles: { fillColor: [155, 89, 182], textColor: 255 },
@@ -1993,9 +815,17 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     currentY = doc.lastAutoTable.finalY + 15;
                 }
-            
-                // Add Service Types table if selected
-                if ((!selectedSections || selectedSections.service) && <?= count($service_data) ?> > 0) {
+                
+                // Add Service Types
+                if (selectedSections.service && <?= count($service_data) ?> > 0) {
+                    console.log('Adding Service Types...');
+                    
+                    // Check if we need a new page
+                    if (currentY > 150) {
+                        doc.addPage();
+                        currentY = 20;
+                    }
+                    
                     doc.setFontSize(14);
                     doc.setTextColor(40, 40, 40);
                     doc.text('Service Types Breakdown', 20, currentY);
@@ -2012,7 +842,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     doc.autoTable({
                         startY: currentY + 5,
-                        head: [['Service Type', 'Total', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Completion Rate']],
+                        head: [['Service Type', 'Total', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Rate']],
                         body: serviceData,
                         theme: 'grid',
                         headStyles: { fillColor: [26, 188, 156], textColor: 255 },
@@ -2029,77 +859,44 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     currentY = doc.lastAutoTable.finalY + 15;
                 }
-            
-                // Add Detailed Schedules table if selected
-                if ((!selectedSections || selectedSections.detailed) && <?= count($install_data) ?> > 0) {
+                
+                // Add Detailed Schedules (limited to first 50)
+                if (selectedSections.detailed && <?= count($install_data) ?> > 0) {
+                    console.log('Adding Detailed Schedules...');
+                    
+                    doc.addPage();
+                    currentY = 20;
+                    
                     doc.setFontSize(14);
                     doc.setTextColor(40, 40, 40);
-                    doc.text('Detailed Installation Schedules', 20, currentY);
+                    doc.text('Detailed Installation Schedules (First 50 Records)', 20, currentY);
                     
-                    // Limit to first 50 records for PDF
                     const installData = <?= json_encode(array_slice($install_data, 0, 50)) ?>.map(item => [
                         item.id || 'N/A',
                         item.installer_name || 'N/A',
                         item.customer_name || 'N/A',
                         item.contact_number || 'N/A',
                         new Date(item.schedule_date).toLocaleDateString(),
-                        new Date('1970-01-01T' + item.schedule_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
                         item.service_type || 'N/A',
-                        item.status || 'N/A',
-                        item.address ? item.address.substring(0, 30) + '...' : 'N/A'
+                        item.status || 'N/A'
                     ]);
                     
                     doc.autoTable({
                         startY: currentY + 5,
-                        head: [['ID', 'Installer', 'Customer', 'Contact', 'Date', 'Time', 'Service', 'Status', 'Address']],
+                        head: [['ID', 'Installer', 'Customer', 'Contact', 'Date', 'Service', 'Status']],
                         body: installData,
                         theme: 'grid',
                         headStyles: { fillColor: [52, 73, 94], textColor: 255 },
-                        styles: { fontSize: 7, cellPadding: 1 },
+                        styles: { fontSize: 7, cellPadding: 1.5 },
                         columnStyles: {
-                            0: { halign: 'center' },
+                            0: { halign: 'center', cellWidth: 15 },
                             4: { halign: 'center' },
-                            5: { halign: 'center' },
-                            7: { halign: 'center' }
+                            6: { halign: 'center' }
                         }
                     });
-                    
-                    currentY = doc.lastAutoTable.finalY + 15;
                 }
                 
-                // Add Analytics section if selected
-                if (!selectedSections || selectedSections.trends) {
-                    doc.setFontSize(14);
-                    doc.setTextColor(40, 40, 40);
-                    doc.text('Installation Analytics', 20, currentY);
-                    
-                    // Status distribution
-                    const statusData = [
-                        ['Scheduled', '<?= $summary['scheduled_count'] ?? 0 ?>'],
-                        ['In Progress', '<?= $summary['in_progress_count'] ?? 0 ?>'],
-                        ['Completed', '<?= $summary['completed_count'] ?? 0 ?>'],
-                        ['Cancelled', '<?= $summary['cancelled_count'] ?? 0 ?>']
-                    ];
-                    
-                    doc.setFontSize(12);
-                    doc.text('Status Distribution', 20, currentY + 10);
-                    
-                    doc.autoTable({
-                        startY: currentY + 15,
-                        head: [['Status', 'Count']],
-                        body: statusData,
-                        theme: 'grid',
-                        headStyles: { fillColor: [52, 152, 219], textColor: 255 },
-                        styles: { fontSize: 9, cellPadding: 2 },
-                        columnStyles: {
-                            1: { halign: 'center' }
-                        }
-                    });
-                    
-                    currentY = doc.lastAutoTable.finalY + 10;
-                }
-                
-                // Add footer
+                // Add footer to all pages
                 const pageCount = doc.internal.getNumberOfPages();
                 for (let i = 1; i <= pageCount; i++) {
                     doc.setPage(i);
@@ -2109,18 +906,432 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     doc.text('Generated by AUS Installation System', 20, doc.internal.pageSize.height - 10);
                 }
                 
-                // Download the PDF
-                const selectedSectionsText = selectedSections ? 
-                    Object.keys(selectedSections).filter(key => selectedSections[key]).join('_') : 'all';
-                const fileName = 'Installation_Report_' + selectedSectionsText + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+                // Save the PDF
+                const fileName = 'Installation_Report_' + new Date().toISOString().split('T')[0] + '.pdf';
                 doc.save(fileName);
+                
+                console.log('PDF generated successfully!');
+                alert('PDF generated successfully! Check your downloads folder.');
                 
             } catch (error) {
                 console.error('PDF Generation Error:', error);
-                alert('Error generating PDF: ' + error.message + '\nPlease check the browser console for more details.');
+                alert('Error generating PDF: ' + error.message + '\n\nTroubleshooting:\n1. Try refreshing the page\n2. Clear your browser cache\n3. Check browser console for details');
             }
         }
 
+        function toggleCustomDate() {
+            document.getElementById('customDateRange').style.display = 'flex';
+            document.querySelectorAll('button.filter-btn').forEach(btn => btn.classList.remove('active'));
+        }
+
+        function getPeriodText() {
+            const filter = '<?= $filter ?>';
+            const startDate = '<?= $start_date ?>';
+            const endDate = '<?= $end_date ?>';
+            
+            switch(filter) {
+                case 'today': return 'Today';
+                case 'week': return 'This Week';
+                case 'month': return 'This Month';
+                case 'year': return 'This Year';
+                case 'custom': return startDate + ' to ' + endDate;
+                default: return 'Overall';
+            }
+        }
+
+        // Tab persistence
+        function saveActiveTab(tabId) {
+            localStorage.setItem('installReportActiveTab', tabId);
+        }
+
+        function getActiveTab() {
+            return localStorage.getItem('installReportActiveTab') || 'summary';
+        }
+
+        function restoreActiveTab() {
+            const activeTabId = getActiveTab();
+            const tabButton = document.getElementById(activeTabId + '-tab');
+            const tabPane = document.getElementById(activeTabId);
+            
+            if (tabButton && tabPane) {
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.setAttribute('aria-selected', 'false');
+                });
+                
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                
+                tabButton.classList.add('active');
+                tabButton.setAttribute('aria-selected', 'true');
+                tabPane.classList.add('show', 'active');
+            }
+        }
+
+        // Table management for detailed schedules
+        let detailedTableData = [];
+        let filteredDetailedData = [];
+        let currentPage = 1;
+        let entriesPerPage = 25;
+        let sortColumn = -1;
+        let sortDirection = 'asc';
+
+        // Initialize table data
+        function initializeDetailedTable() {
+            const tableBody = document.getElementById('detailedTableBody');
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            
+            detailedTableData = rows.map(row => {
+                const cells = Array.from(row.querySelectorAll('td'));
+                return {
+                    element: row,
+                    data: cells.map(cell => cell.textContent.trim())
+                };
+            }).filter(item => item.data.length > 0);
+            
+            filteredDetailedData = [...detailedTableData];
+            updateDetailedTableDisplay();
+        }
+
+        // Search functionality
+        function searchDetailedTable(searchTerm) {
+            const term = searchTerm.toLowerCase();
+            
+            filteredDetailedData = detailedTableData.filter(item => {
+                return item.data.some(cellData => 
+                    cellData.toLowerCase().includes(term)
+                );
+            });
+            
+            currentPage = 1;
+            updateDetailedTableDisplay();
+        }
+
+        // Filter functionality
+        function filterDetailedTable(statusFilter, installerFilter, serviceFilter) {
+            filteredDetailedData = detailedTableData.filter(item => {
+                const statusMatch = !statusFilter || item.data[8].includes(statusFilter);
+                const installerMatch = !installerFilter || item.data[1].includes(installerFilter);
+                const serviceMatch = !serviceFilter || item.data[7].includes(serviceFilter);
+                
+                return statusMatch && installerMatch && serviceMatch;
+            });
+            
+            currentPage = 1;
+            updateDetailedTableDisplay();
+        }
+
+        // Update table display
+        function updateDetailedTableDisplay() {
+            const tableBody = document.getElementById('detailedTableBody');
+            const startIndex = (currentPage - 1) * entriesPerPage;
+            const endIndex = startIndex + entriesPerPage;
+            
+            // Clear table body
+            tableBody.innerHTML = '';
+            
+            // Show filtered data
+            const dataToShow = filteredDetailedData.slice(startIndex, endIndex);
+            
+            if (dataToShow.length === 0) {
+                const noDataRow = document.createElement('tr');
+                noDataRow.innerHTML = '<td colspan="12" class="text-center">No data found</td>';
+                tableBody.appendChild(noDataRow);
+            } else {
+                dataToShow.forEach(item => {
+                    tableBody.appendChild(item.element.cloneNode(true));
+                });
+            }
+            
+            // Update pagination info
+            updateDetailedPaginationInfo();
+            generateDetailedPagination();
+        }
+
+        // Update pagination info
+        function updateDetailedPaginationInfo() {
+            const total = filteredDetailedData.length;
+            const start = (currentPage - 1) * entriesPerPage + 1;
+            const end = Math.min(start + entriesPerPage - 1, total);
+            
+            document.getElementById('showingStart').textContent = start;
+            document.getElementById('showingEnd').textContent = end;
+            document.getElementById('totalFiltered').textContent = total;
+        }
+
+        // Generate pagination
+        function generateDetailedPagination() {
+            const pagination = document.getElementById('pagination');
+            const totalPages = Math.ceil(filteredDetailedData.length / entriesPerPage);
+            
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changeDetailedPage(${currentPage - 1})">Previous</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changeDetailedPage(${i})">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changeDetailedPage(${currentPage + 1})">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        // Change page
+        function changeDetailedPage(page) {
+            const totalPages = Math.ceil(filteredDetailedData.length / entriesPerPage);
+            
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+                updateDetailedTableDisplay();
+            }
+        }
+
+        // Change entries per page
+        function changeDetailedEntriesPerPage(entries) {
+            entriesPerPage = parseInt(entries);
+            currentPage = 1;
+            updateDetailedTableDisplay();
+        }
+
+        // Initialize on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('Page loaded. Checking libraries...');
+            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+            console.log('jsPDF.jsPDF available:', typeof window.jspdf?.jsPDF !== 'undefined');
+            console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+            
+            restoreActiveTab();
+            initializeDetailedTable();
+            
+            // Add event listeners for search and filters
+            document.getElementById('searchInput').addEventListener('input', function() {
+                searchDetailedTable(this.value);
+            });
+            
+            document.getElementById('statusFilter').addEventListener('change', function() {
+                const statusFilter = this.value;
+                const installerFilter = document.getElementById('installerFilter').value;
+                const serviceFilter = document.getElementById('serviceFilter').value;
+                filterDetailedTable(statusFilter, installerFilter, serviceFilter);
+            });
+            
+            document.getElementById('installerFilter').addEventListener('change', function() {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const installerFilter = this.value;
+                const serviceFilter = document.getElementById('serviceFilter').value;
+                filterDetailedTable(statusFilter, installerFilter, serviceFilter);
+            });
+            
+            document.getElementById('serviceFilter').addEventListener('change', function() {
+                const statusFilter = document.getElementById('statusFilter').value;
+                const installerFilter = document.getElementById('installerFilter').value;
+                const serviceFilter = this.value;
+                filterDetailedTable(statusFilter, installerFilter, serviceFilter);
+            });
+            
+            document.getElementById('rowsPerPage').addEventListener('change', function() {
+                changeDetailedEntriesPerPage(this.value);
+            });
+            
+            document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(link => {
+                link.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-bs-target').replace('#', '');
+                    saveActiveTab(tabId);
+                });
+            });
+        });
+
+        // Chart.js initialization
+        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['install_date'])); }, $chart_data)); ?>;
+        const chartData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_schedules'))); ?>;
+        const completedData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_completed'))); ?>;
+        const serviceLabels = <?php echo json_encode(array_column($service_data, 'service_type')); ?>;
+        const serviceData = <?php echo json_encode(array_map('intval', array_column($service_data, 'total_count'))); ?>;
+
+        // Initialize charts when DOM is ready
+        window.addEventListener('DOMContentLoaded', function() {
+            const trendCtx = document.getElementById('installTrendChart');
+            const serviceCtx = document.getElementById('serviceChart');
+            
+            if (trendCtx) {
+                new Chart(trendCtx.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: [{
+                            label: 'Total Schedules',
+                            data: chartData,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }, {
+                            label: 'Completed',
+                            data: completedData,
+                            borderColor: 'rgb(40, 167, 69)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.1,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true,
+                                ticks: { stepSize: 1 }
+                            }
+                        }
+                    }
+                });
+            }
+            
+            if (serviceCtx) {
+                new Chart(serviceCtx.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: serviceLabels,
+                        datasets: [{
+                            data: serviceData,
+                            backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { position: 'bottom' }
+                        }
+                    }
+                });
+            }
+        });
+
+        // Table sorting functions
+        function sortTable(columnIndex) {
+            const table = document.getElementById('detailedTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            if (rows.length === 0) return;
+            
+            const currentDirection = table.getAttribute('data-sort-direction') || 'asc';
+            const currentColumn = parseInt(table.getAttribute('data-sort-column') || -1);
+            
+            let direction = 'asc';
+            if (currentColumn === columnIndex) {
+                direction = currentDirection === 'asc' ? 'desc' : 'asc';
+            }
+            
+            table.setAttribute('data-sort-column', columnIndex);
+            table.setAttribute('data-sort-direction', direction);
+            
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex].textContent.trim();
+                let bVal = b.cells[columnIndex].textContent.trim();
+                
+                if (!isNaN(aVal) && !isNaN(bVal)) {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+            
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                const icon = header.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-sort';
+                    if (index === columnIndex) {
+                        icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    }
+                }
+            });
+        }
+
+        function sortInstallerTable(columnIndex) {
+            sortGenericTable('installerTable', columnIndex);
+        }
+
+        function sortServiceTable(columnIndex) {
+            sortGenericTable('serviceTable', columnIndex);
+        }
+
+        function sortGenericTable(tableId, columnIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            if (rows.length === 0 || rows[0].cells.length <= 1) return;
+            
+            const currentDirection = table.getAttribute('data-sort-direction') || 'asc';
+            const currentColumn = parseInt(table.getAttribute('data-sort-column') || -1);
+            
+            let direction = 'asc';
+            if (currentColumn === columnIndex) {
+                direction = currentDirection === 'asc' ? 'desc' : 'asc';
+            }
+            
+            table.setAttribute('data-sort-column', columnIndex);
+            table.setAttribute('data-sort-direction', direction);
+            
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex].textContent.trim();
+                let bVal = b.cells[columnIndex].textContent.trim();
+                
+                if (aVal.includes('%')) {
+                    aVal = parseFloat(aVal.replace('%', ''));
+                    bVal = parseFloat(bVal.replace('%', ''));
+                } else if (!isNaN(aVal) && !isNaN(bVal)) {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            
+            rows.forEach(row => tbody.appendChild(row));
+            
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                const icon = header.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-sort';
+                    if (index === columnIndex) {
+                        icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    }
+                }
+            });
+        }
     </script>
 </body> 
 </html>

@@ -310,9 +310,9 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                             <button class="btn btn-success" onclick="showPDFOptions()">
                                 <i class="fas fa-file-pdf"></i> Download PDF
                             </button>
-                            <button class="btn btn-outline-secondary" onclick="window.print()">
+                            <!-- <button class="btn btn-outline-secondary" onclick="window.print()">
                                 <i class="fas fa-print"></i> Print
-                            </button>
+                            </button> -->
                         </div>
                     </div>
                     
@@ -1219,6 +1219,9 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
             // Restore active tab first
             restoreActiveTab();
             
+            // Initialize table data
+            initializeTableData();
+            
             // Add click listeners to all tab buttons
             document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(link => {
                 link.addEventListener('click', function() {
@@ -1226,7 +1229,6 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                     saveActiveTab(tabId);
                 });
             });
-            
             
             // Initialize all sections as printable
             document.querySelectorAll('.section-content').forEach(section => {
@@ -1361,8 +1363,14 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
         }
         
         function downloadPDF(selectedSections = null) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF('landscape', 'mm', 'letter'); // Landscape orientation, letter size
+            try {
+                const { jsPDF } = window.jspdf;
+                
+                if (!jsPDF) {
+                    throw new Error('jsPDF not loaded properly. Please refresh the page.');
+                }
+                
+                const doc = new jsPDF('landscape', 'mm', 'letter'); // Landscape orientation, letter size
             
             // Set up fonts and colors
             doc.setFont('helvetica');
@@ -1621,6 +1629,14 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                 Object.keys(selectedSections).filter(key => selectedSections[key]).join('_') : 'all';
             const fileName = 'Inventory_Report_' + selectedSectionsText + '_' + new Date().toISOString().split('T')[0] + '.pdf';
             doc.save(fileName);
+            
+            console.log('PDF generated successfully!');
+            alert('PDF generated successfully! Check your downloads folder.');
+            
+        } catch (error) {
+            console.error('PDF Generation Error:', error);
+            alert('Error generating PDF: ' + error.message + '\n\nTroubleshooting:\n1. Try refreshing the page\n2. Clear your browser cache\n3. Check browser console for details');
+        }
         }
         
         function getPeriodText() {
