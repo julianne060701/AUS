@@ -195,9 +195,9 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
 <html lang="en"> 
 <head> 
     <?php include('../includes/header.php'); ?> 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
@@ -215,7 +215,6 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
         .normal-stock { color: #28a745; }
         .alert-card { border-left: 4px solid #dc3545; }
         .print-header { display: none; }
-        .section-checkbox { margin-right: 15px; }
         .section-checkbox label { font-weight: 500; cursor: pointer; }
         
         /* Professional Tab Styles */
@@ -281,11 +280,6 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
         /* Professional Card Styles */
         .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border-radius: 0.75rem; }
         .card-header { background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-bottom: 2px solid #dee2e6; border-radius: 0.75rem 0.75rem 0 0 !important; }
-        
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
         
         @media print {
             body * { visibility: hidden; }
@@ -812,8 +806,6 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
             </div> 
             <?php include('../includes/footer.php'); ?> 
         </div>
-    </div>
-
     <!-- PDF Download Options Modal -->
     <div class="modal fade" id="pdfOptionsModal" tabindex="-1" aria-labelledby="pdfOptionsModalLabel" aria-hidden="true">
         <div class="modal-dialog modal-lg">
@@ -898,7 +890,6 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
 
@@ -1236,8 +1227,11 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                 });
             });
             
-            // Initialize table data
-            initializeTableData();
+            
+            // Initialize all sections as printable
+            document.querySelectorAll('.section-content').forEach(section => {
+                section.classList.add('printable-section');
+            });
             
             // Stock In event listeners
             document.getElementById('stockInSearch').addEventListener('input', function() {

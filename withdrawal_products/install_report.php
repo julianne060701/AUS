@@ -4,7 +4,111 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: ../login.php"); 
     exit(); 
 } 
-include '../config/conn.php'; 
+include '../config/conn.php';
+
+// Handle server-side PDF generation
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'generate_pdf') {
+    // Get selected sections
+    $selectedSections = json_decode($_POST['sections'], true);
+    $filter = $_POST['filter'] ?? 'overall';
+    $start_date = $_POST['start_date'] ?? '';
+    $end_date = $_POST['end_date'] ?? '';
+    
+    // Build date condition
+    $date_condition = "";
+    $params = [];
+    $param_types = "";
+    
+    switch($filter) {
+        case 'today':
+            $date_condition = "WHERE DATE(schedule_date) = CURDATE()";
+            break;
+        case 'week':
+            $date_condition = "WHERE schedule_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            break;
+        case 'month':
+            $date_condition = "WHERE MONTH(schedule_date) = MONTH(CURDATE()) AND YEAR(schedule_date) = YEAR(CURDATE())";
+            break;
+        case 'year':
+            $date_condition = "WHERE YEAR(schedule_date) = YEAR(CURDATE())";
+            break;
+        case 'custom':
+            if($start_date && $end_date) {
+                $date_condition = "WHERE schedule_date BETWEEN ? AND ?";
+                $params = [$start_date, $end_date];
+                $param_types = "ss";
+            }
+            break;
+        case 'overall':
+        default:
+            $date_condition = "";
+            break;
+    }
+    
+    // Get data
+    $summary_query = "SELECT 
+        COUNT(*) as total_schedules,
+        COUNT(CASE WHEN status = 'Scheduled' THEN 1 END) as scheduled_count,
+        COUNT(CASE WHEN status = 'In Progress' THEN 1 END) as in_progress_count,
+        COUNT(CASE WHEN status = 'Completed' THEN 1 END) as completed_count,
+        COUNT(CASE WHEN status = 'Cancelled' THEN 1 END) as cancelled_count,
+        COUNT(DISTINCT installer_name) as unique_installers
+    FROM installer_schedules 
+    $date_condition";
+    
+    if(!empty($params)) {
+        $stmt = $conn->prepare($summary_query);
+        $stmt->bind_param($param_types, ...$params);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $summary = $result->fetch_assoc();
+    } else {
+        $result = $conn->query($summary_query);
+        $summary = $result->fetch_assoc();
+    }
+    
+    // Generate simple HTML report
+    $html = '<!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="UTF-8">
+        <title>Installation Report</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { color: #333; }
+            h2 { color: #666; margin-top: 30px; }
+            table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+            .summary { background-color: #e7f3ff; }
+        </style>
+    </head>
+    <body>
+        <h1>Professional Installation Report</h1>
+        <p><strong>Generated:</strong> ' . date('Y-m-d H:i:s') . '</p>
+        <p><strong>Period:</strong> ' . $filter . '</p>';
+    
+    if ($selectedSections['summary']) {
+        $html .= '<h2>Summary</h2>
+        <table class="summary">
+            <tr><th>Metric</th><th>Value</th></tr>
+            <tr><td>Total Schedules</td><td>' . number_format($summary['total_schedules'] ?? 0) . '</td></tr>
+            <tr><td>Completed</td><td>' . number_format($summary['completed_count'] ?? 0) . '</td></tr>
+            <tr><td>In Progress</td><td>' . number_format($summary['in_progress_count'] ?? 0) . '</td></tr>
+            <tr><td>Scheduled</td><td>' . number_format($summary['scheduled_count'] ?? 0) . '</td></tr>
+            <tr><td>Cancelled</td><td>' . number_format($summary['cancelled_count'] ?? 0) . '</td></tr>
+            <tr><td>Active Installers</td><td>' . number_format($summary['unique_installers'] ?? 0) . '</td></tr>
+        </table>';
+    }
+    
+    $html .= '</body></html>';
+    
+    // Set headers for PDF download
+    header('Content-Type: text/html');
+    header('Content-Disposition: attachment; filename="Installation_Report_' . date('Y-m-d') . '.html"');
+    echo $html;
+    exit();
+} 
 
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'overall';
 $start_date = isset($_GET['start_date']) ? $_GET['start_date'] : '';
@@ -140,6 +244,9 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
 <head> 
     <?php include('../includes/header.php'); ?> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
@@ -230,6 +337,80 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             to { opacity: 1; transform: translateY(0); }
         }
         
+        /* PDF Download Styles */
+        .pdf-download-btn {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+        }
+        
+        .pdf-download-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(40, 167, 69, 0.4);
+            color: white;
+        }
+        
+        .pdf-download-btn i {
+            margin-right: 0.5rem;
+        }
+        
+        /* Print/PDF specific styles */
+        @media print {
+            .filter-card, .nav-tabs, .btn, .pagination {
+                display: none !important;
+            }
+            
+            .tab-content {
+                display: block !important;
+            }
+            
+            .tab-pane {
+                display: block !important;
+                page-break-inside: avoid;
+            }
+            
+            .card {
+                border: 1px solid #ddd !important;
+                box-shadow: none !important;
+                margin-bottom: 1rem;
+            }
+            
+            .table {
+                font-size: 0.8rem;
+            }
+            
+            .table th, .table td {
+                border: 1px solid #ddd !important;
+                padding: 0.5rem !important;
+            }
+            
+            .chart-container {
+                height: 200px !important;
+            }
+            
+            .summary-card {
+                border: 1px solid #ddd !important;
+                margin-bottom: 1rem;
+            }
+            
+            .container-fluid {
+                padding: 0 !important;
+            }
+            
+            .row {
+                margin: 0 !important;
+            }
+            
+            .col-xl-3, .col-md-6 {
+                padding: 0.5rem !important;
+            }
+        }
+        
     </style>
 </head> 
 <body id="page-top"> 
@@ -241,6 +422,11 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 <div class="container-fluid"> 
                     <div class="d-sm-flex align-items-center justify-content-between mb-4"> 
                         <h1 class="h3 mb-0 text-gray-800">Installation Report</h1>
+                        <div>
+                            <button type="button" class="btn pdf-download-btn" data-bs-toggle="modal" data-bs-target="#pdfOptionsModal">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </button>
+                        </div>
                     </div>
 
 
@@ -614,10 +800,109 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
 
+    <!-- PDF Download Options Modal -->
+    <div class="modal fade" id="pdfOptionsModal" tabindex="-1" aria-labelledby="pdfOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdfOptionsModalLabel">
+                        <i class="fas fa-file-pdf text-success"></i> PDF Download Options
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h6 class="text-muted">Select which sections to include in your PDF:</h6>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeSummary" checked>
+                                <label class="form-check-label" for="includeSummary">
+                                    <i class="fas fa-chart-pie text-primary"></i> <strong>Summary</strong>
+                                    <small class="text-muted d-block">Key metrics and statistics</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeTrends">
+                                <label class="form-check-label" for="includeTrends">
+                                    <i class="fas fa-chart-line text-info"></i> <strong>Installation Trends</strong>
+                                    <small class="text-muted d-block">Charts and trend analysis</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeInstaller">
+                                <label class="form-check-label" for="includeInstaller">
+                                    <i class="fas fa-users text-warning"></i> <strong>Installer Performance</strong>
+                                    <small class="text-muted d-block">Performance metrics by installer</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeService">
+                                <label class="form-check-label" for="includeService">
+                                    <i class="fas fa-cogs text-secondary"></i> <strong>Service Types</strong>
+                                    <small class="text-muted d-block">Breakdown by service type</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeDetailed">
+                                <label class="form-check-label" for="includeDetailed">
+                                    <i class="fas fa-list text-success"></i> <strong>Detailed Schedules</strong>
+                                    <small class="text-muted d-block">Complete installation records (<?= count($install_data) ?> records)</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeCharts">
+                                <label class="form-check-label" for="includeCharts">
+                                    <i class="fas fa-chart-bar text-danger"></i> <strong>Charts & Graphs</strong>
+                                    <small class="text-muted d-block">Visual data representations</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> The PDF will be generated in landscape orientation on letter/short bond paper size for optimal table viewing.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="generateSelectedPDF()">
+                        <i class="fas fa-download"></i> Generate PDF (Client-side)
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="generateServerPDF()">
+                        <i class="fas fa-server"></i> Generate PDF (Server-side)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         
+        // Debug function to check PDF libraries
+        function checkPDFLibraries() {
+            console.log('Checking PDF libraries...');
+            console.log('jsPDF available:', typeof window.jspdf !== 'undefined');
+            if (typeof window.jspdf !== 'undefined') {
+                console.log('autoTable available:', typeof window.jspdf.jsPDF.prototype.autoTable !== 'undefined');
+            }
+            console.log('Bootstrap available:', typeof bootstrap !== 'undefined');
+        }
+        
+        // Run check when page loads
+        window.addEventListener('load', checkPDFLibraries);
         
         function getPeriodText() {
             const filter = '<?= $filter ?>';
@@ -1506,6 +1791,336 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 }
             }
         });
+
+        // PDF Download Functionality with Modal Options
+        function generateSelectedPDF() {
+            // Get selected options
+            const selectedSections = {
+                summary: document.getElementById('includeSummary').checked,
+                trends: document.getElementById('includeTrends').checked,
+                installer: document.getElementById('includeInstaller').checked,
+                service: document.getElementById('includeService').checked,
+                detailed: document.getElementById('includeDetailed').checked,
+                charts: document.getElementById('includeCharts').checked
+            };
+            
+            // Check if at least one section is selected
+            const hasSelection = Object.values(selectedSections).some(selected => selected);
+            if (!hasSelection) {
+                alert('Please select at least one section to include in the PDF.');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
+            modal.hide();
+            
+            // Generate PDF with selected sections
+            downloadPDF(selectedSections);
+        }
+        
+        // Server-side PDF generation (bypasses client-side security issues)
+        function generateServerPDF() {
+            // Get selected options
+            const selectedSections = {
+                summary: document.getElementById('includeSummary').checked,
+                trends: document.getElementById('includeTrends').checked,
+                installer: document.getElementById('includeInstaller').checked,
+                service: document.getElementById('includeService').checked,
+                detailed: document.getElementById('includeDetailed').checked,
+                charts: document.getElementById('includeCharts').checked
+            };
+            
+            // Check if at least one section is selected
+            const hasSelection = Object.values(selectedSections).some(selected => selected);
+            if (!hasSelection) {
+                alert('Please select at least one section to include in the PDF.');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
+            modal.hide();
+            
+            // Show loading state
+            const downloadBtn = document.querySelector('.btn-primary');
+            const originalText = downloadBtn.innerHTML;
+            downloadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            downloadBtn.disabled = true;
+            
+            // Create form data
+            const formData = new FormData();
+            formData.append('action', 'generate_pdf');
+            formData.append('sections', JSON.stringify(selectedSections));
+            formData.append('filter', '<?= $filter ?>');
+            formData.append('start_date', '<?= $start_date ?>');
+            formData.append('end_date', '<?= $end_date ?>');
+            
+            // Send request to server
+            fetch('install_report.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                }
+                throw new Error('Server error: ' + response.status);
+            })
+            .then(blob => {
+                // Create download link
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Installation_Report_Server_' + new Date().toISOString().split('T')[0] + '.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            })
+            .catch(error => {
+                console.error('Server PDF generation error:', error);
+                alert('Error generating PDF: ' + error.message + '\nPlease try the client-side option or check server configuration.');
+            })
+            .finally(() => {
+                // Restore button state
+                downloadBtn.innerHTML = originalText;
+                downloadBtn.disabled = false;
+            });
+        }
+        
+        function downloadPDF(selectedSections = null) {
+            try {
+                // Check if jsPDF is available
+                if (typeof window.jspdf === 'undefined') {
+                    alert('PDF library not loaded. Please refresh the page and try again.');
+                    console.error('jsPDF library not found');
+                    return;
+                }
+                
+                const { jsPDF } = window.jspdf;
+                
+                // Check if autoTable is available
+                if (typeof jsPDF.prototype.autoTable === 'undefined') {
+                    alert('PDF table plugin not loaded. Please refresh the page and try again.');
+                    console.error('jsPDF autoTable plugin not found');
+                    return;
+                }
+                
+                const doc = new jsPDF('landscape', 'mm', 'letter'); // Landscape orientation, letter size
+                
+                // Set up fonts and colors
+                doc.setFont('helvetica');
+                
+                // Add header
+                doc.setFontSize(20);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Professional Installation Report', 20, 20);
+                
+                // Add report details
+                doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text('Generated on: ' + new Date().toLocaleString(), 20, 30);
+                
+                // Add period information
+                const periodText = getPeriodText();
+                doc.text('Period: ' + periodText, 20, 36);
+                
+                let currentY = 50;
+                
+                // Add Summary section if selected
+                if (!selectedSections || selectedSections.summary) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Summary', 20, currentY);
+                    
+                    // Summary data
+                    doc.setFontSize(10);
+                    doc.setTextColor(60, 60, 60);
+                    const summaryData = [
+                        ['Total Schedules', '<?= number_format($summary['total_schedules'] ?? 0) ?>'],
+                        ['Completed', '<?= number_format($summary['completed_count'] ?? 0) ?>'],
+                        ['In Progress', '<?= number_format($summary['in_progress_count'] ?? 0) ?>'],
+                        ['Scheduled', '<?= number_format($summary['scheduled_count'] ?? 0) ?>'],
+                        ['Cancelled', '<?= number_format($summary['cancelled_count'] ?? 0) ?>'],
+                        ['Active Installers', '<?= number_format($summary['unique_installers'] ?? 0) ?>']
+                    ];
+                    
+                    doc.autoTable({
+                        startY: currentY + 5,
+                        head: [['Metric', 'Value']],
+                        body: summaryData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [102, 126, 234], textColor: 255 },
+                        styles: { fontSize: 10, cellPadding: 3 }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 15;
+                }
+            
+                // Add Installer Performance table if selected
+                if ((!selectedSections || selectedSections.installer) && <?= count($installer_data) ?> > 0) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Installer Performance', 20, currentY);
+                    
+                    const installerData = <?= json_encode($installer_data) ?>.map(item => [
+                        item.installer_name || 'N/A',
+                        item.total_schedules || '0',
+                        item.scheduled_count || '0',
+                        item.in_progress_count || '0',
+                        item.completed_count || '0',
+                        item.cancelled_count || '0',
+                        (item.total_schedules > 0 ? ((item.completed_count / item.total_schedules) * 100).toFixed(1) : '0') + '%'
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: currentY + 5,
+                        head: [['Installer', 'Total', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Completion Rate']],
+                        body: installerData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [155, 89, 182], textColor: 255 },
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center' },
+                            4: { halign: 'center' },
+                            5: { halign: 'center' },
+                            6: { halign: 'center' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 15;
+                }
+            
+                // Add Service Types table if selected
+                if ((!selectedSections || selectedSections.service) && <?= count($service_data) ?> > 0) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Service Types Breakdown', 20, currentY);
+                    
+                    const serviceData = <?= json_encode($service_data) ?>.map(item => [
+                        item.service_type || 'N/A',
+                        item.total_count || '0',
+                        item.scheduled_count || '0',
+                        item.in_progress_count || '0',
+                        item.completed_count || '0',
+                        item.cancelled_count || '0',
+                        (item.total_count > 0 ? ((item.completed_count / item.total_count) * 100).toFixed(1) : '0') + '%'
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: currentY + 5,
+                        head: [['Service Type', 'Total', 'Scheduled', 'In Progress', 'Completed', 'Cancelled', 'Completion Rate']],
+                        body: serviceData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [26, 188, 156], textColor: 255 },
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'center' },
+                            4: { halign: 'center' },
+                            5: { halign: 'center' },
+                            6: { halign: 'center' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 15;
+                }
+            
+                // Add Detailed Schedules table if selected
+                if ((!selectedSections || selectedSections.detailed) && <?= count($install_data) ?> > 0) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Detailed Installation Schedules', 20, currentY);
+                    
+                    // Limit to first 50 records for PDF
+                    const installData = <?= json_encode(array_slice($install_data, 0, 50)) ?>.map(item => [
+                        item.id || 'N/A',
+                        item.installer_name || 'N/A',
+                        item.customer_name || 'N/A',
+                        item.contact_number || 'N/A',
+                        new Date(item.schedule_date).toLocaleDateString(),
+                        new Date('1970-01-01T' + item.schedule_time).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                        item.service_type || 'N/A',
+                        item.status || 'N/A',
+                        item.address ? item.address.substring(0, 30) + '...' : 'N/A'
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: currentY + 5,
+                        head: [['ID', 'Installer', 'Customer', 'Contact', 'Date', 'Time', 'Service', 'Status', 'Address']],
+                        body: installData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [52, 73, 94], textColor: 255 },
+                        styles: { fontSize: 7, cellPadding: 1 },
+                        columnStyles: {
+                            0: { halign: 'center' },
+                            4: { halign: 'center' },
+                            5: { halign: 'center' },
+                            7: { halign: 'center' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 15;
+                }
+                
+                // Add Analytics section if selected
+                if (!selectedSections || selectedSections.trends) {
+                    doc.setFontSize(14);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Installation Analytics', 20, currentY);
+                    
+                    // Status distribution
+                    const statusData = [
+                        ['Scheduled', '<?= $summary['scheduled_count'] ?? 0 ?>'],
+                        ['In Progress', '<?= $summary['in_progress_count'] ?? 0 ?>'],
+                        ['Completed', '<?= $summary['completed_count'] ?? 0 ?>'],
+                        ['Cancelled', '<?= $summary['cancelled_count'] ?? 0 ?>']
+                    ];
+                    
+                    doc.setFontSize(12);
+                    doc.text('Status Distribution', 20, currentY + 10);
+                    
+                    doc.autoTable({
+                        startY: currentY + 15,
+                        head: [['Status', 'Count']],
+                        body: statusData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+                        styles: { fontSize: 9, cellPadding: 2 },
+                        columnStyles: {
+                            1: { halign: 'center' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 10;
+                }
+                
+                // Add footer
+                const pageCount = doc.internal.getNumberOfPages();
+                for (let i = 1; i <= pageCount; i++) {
+                    doc.setPage(i);
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                    doc.text('Generated by AUS Installation System', 20, doc.internal.pageSize.height - 10);
+                }
+                
+                // Download the PDF
+                const selectedSectionsText = selectedSections ? 
+                    Object.keys(selectedSections).filter(key => selectedSections[key]).join('_') : 'all';
+                const fileName = 'Installation_Report_' + selectedSectionsText + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+                doc.save(fileName);
+                
+            } catch (error) {
+                console.error('PDF Generation Error:', error);
+                alert('Error generating PDF: ' + error.message + '\nPlease check the browser console for more details.');
+            }
+        }
+
     </script>
 </body> 
 </html>
