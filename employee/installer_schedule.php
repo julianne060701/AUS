@@ -949,11 +949,11 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 </head>
 <body id="page-top">
 <div id="wrapper">
-    <?php include('../includes/sidebar.php'); ?>
+    <?php include('includes/sidebar.php'); ?>
 
     <div id="content-wrapper" class="d-flex flex-column">
         <div id="content">
-            <?php include('../includes/topbar.php'); ?>
+            <?php include('includes/topbar.php'); ?>
 
             <div class="container-fluid">
                 <!-- Dashboard Header -->
@@ -1589,7 +1589,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
         </div>
         <!-- End of Content -->
 
-        <?php include('../includes/footer.php'); ?>
+        <?php include('includes/footer.php'); ?>
 
     </div>
     <!-- End of Content Wrapper -->

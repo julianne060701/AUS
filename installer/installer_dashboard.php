@@ -39,10 +39,14 @@ $stats_stmt->execute();
 $stats_result = $stats_stmt->get_result();
 $stats = $stats_result->fetch_assoc();
 
-// Fetch schedules for the logged-in installer
-$query = "SELECT * FROM installer_schedules 
-          WHERE installer_name = ? 
-          ORDER BY schedule_date ASC, schedule_time ASC";
+// Fetch schedules for the logged-in installer with product names
+$query = "SELECT s.*, p.product_name, p.capacity, b.brand_name, c.category_name
+          FROM installer_schedules s
+          LEFT JOIN products p ON s.products_to_install = p.id
+          LEFT JOIN brands b ON p.brand_id = b.brand_id
+          LEFT JOIN category c ON p.category_id = c.category_id
+          WHERE s.installer_name = ? 
+          ORDER BY s.schedule_date ASC, s.schedule_time ASC";
 
 $stmt = $conn->prepare($query);
 $stmt->bind_param("s", $installer_name);
@@ -506,21 +510,78 @@ foreach ($schedules as $schedule) {
             color: #94a3b8;
         }
 
+        .product-details {
+            margin-bottom: 1rem;
+        }
+
+        .product-info-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            color: #374151;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .product-info-title {
+            color: #374151;
+        }
+
         .product-tags {
             display: flex;
             flex-wrap: wrap;
             gap: 0.5rem;
-            margin-bottom: 1rem;
         }
 
         .product-tag {
             background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
             color: #78350f;
-            padding: 0.25rem 0.75rem;
-            border-radius: 10px;
+            padding: 0.5rem 0.75rem;
+            border-radius: 12px;
             font-size: 0.8rem;
             font-weight: 500;
             box-shadow: 0 2px 8px -2px rgba(251, 146, 60, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-tag::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(251, 146, 60, 0.1) 0%, rgba(245, 158, 11, 0.1) 100%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .product-tag:hover::before {
+            opacity: 1;
+        }
+
+        .product-name {
+            font-weight: 600;
+            color: #78350f;
+            position: relative;
+            z-index: 2;
+        }
+
+        .quantity-badge {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            box-shadow: 0 2px 4px -1px rgba(59, 130, 246, 0.3);
+            position: relative;
+            z-index: 2;
         }
 
         .team-tags {
@@ -1097,6 +1158,21 @@ foreach ($schedules as $schedule) {
                 font-size: 0.75rem;
                 padding: 0.2rem 0.6rem;
             }
+
+            .product-info-header {
+                font-size: 0.8rem;
+                margin-bottom: 0.5rem;
+            }
+
+            .product-name {
+                font-size: 0.7rem;
+                font-weight: 600;
+            }
+
+            .quantity-badge {
+                font-size: 0.65rem;
+                padding: 0.15rem 0.4rem;
+            }
             
             .pagination-container {
                 padding: 0.75rem;
@@ -1390,14 +1466,37 @@ foreach ($schedules as $schedule) {
                                                 </div>
 
                                                 <!-- Products -->
-                                                <?php if (!empty($schedule['products_to_install'])): ?>
-                                                <div class="product-tags">
-                                                    <?php 
-                                                    $products = explode(',', $schedule['products_to_install']);
-                                                    foreach($products as $product): 
-                                                    ?>
-                                                        <span class="product-tag"><?php echo htmlspecialchars(trim($product)); ?></span>
-                                                    <?php endforeach; ?>
+                                                <?php if (!empty($schedule['product_name'])): ?>
+                                                <div class="product-details">
+                                                    <div class="product-info-header">
+                                                        <i class="fas fa-box"></i>
+                                                        <span class="product-info-title">Products to Install</span>
+                                                    </div>
+                                                    <div class="product-tags">
+                                                        <?php 
+                                                        $quantity = isset($schedule['quantity_to_install']) ? $schedule['quantity_to_install'] : 1;
+                                                        $product_display = $schedule['product_name'];
+                                                        
+                                                        // Add capacity if available
+                                                        if (!empty($schedule['capacity'])) {
+                                                            $product_display .= " ({$schedule['capacity']})";
+                                                        }
+                                                        
+                                                        // Add brand if available
+                                                        if (!empty($schedule['brand_name'])) {
+                                                            $product_display .= " - {$schedule['brand_name']}";
+                                                        }
+                                                        
+                                                        // Add category if available
+                                                        if (!empty($schedule['category_name'])) {
+                                                            $product_display .= " [{$schedule['category_name']}]";
+                                                        }
+                                                        ?>
+                                                        <span class="product-tag">
+                                                            <span class="product-name"><?php echo htmlspecialchars($product_display); ?></span>
+                                                            <span class="quantity-badge">Qty: <?php echo $quantity; ?></span>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <?php endif; ?>
 
@@ -1494,14 +1593,37 @@ foreach ($schedules as $schedule) {
                                                 </div>
 
                                                 <!-- Products -->
-                                                <?php if (!empty($schedule['products_to_install'])): ?>
-                                                <div class="product-tags">
-                                                    <?php 
-                                                    $products = explode(',', $schedule['products_to_install']);
-                                                    foreach($products as $product): 
-                                                    ?>
-                                                        <span class="product-tag"><?php echo htmlspecialchars(trim($product)); ?></span>
-                                                    <?php endforeach; ?>
+                                                <?php if (!empty($schedule['product_name'])): ?>
+                                                <div class="product-details">
+                                                    <div class="product-info-header">
+                                                        <i class="fas fa-box"></i>
+                                                        <span class="product-info-title">Products Installed</span>
+                                                    </div>
+                                                    <div class="product-tags">
+                                                        <?php 
+                                                        $quantity = isset($schedule['quantity_to_install']) ? $schedule['quantity_to_install'] : 1;
+                                                        $product_display = $schedule['product_name'];
+                                                        
+                                                        // Add capacity if available
+                                                        if (!empty($schedule['capacity'])) {
+                                                            $product_display .= " ({$schedule['capacity']})";
+                                                        }
+                                                        
+                                                        // Add brand if available
+                                                        if (!empty($schedule['brand_name'])) {
+                                                            $product_display .= " - {$schedule['brand_name']}";
+                                                        }
+                                                        
+                                                        // Add category if available
+                                                        if (!empty($schedule['category_name'])) {
+                                                            $product_display .= " [{$schedule['category_name']}]";
+                                                        }
+                                                        ?>
+                                                        <span class="product-tag">
+                                                            <span class="product-name"><?php echo htmlspecialchars($product_display); ?></span>
+                                                            <span class="quantity-badge">Qty: <?php echo $quantity; ?></span>
+                                                        </span>
+                                                    </div>
                                                 </div>
                                                 <?php endif; ?>
 

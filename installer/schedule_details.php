@@ -33,8 +33,13 @@ if ($schedule_id <= 0) {
     exit();
 }
 
-// Fetch schedule details
-$query = "SELECT * FROM installer_schedules WHERE id = ? AND installer_name = ?";
+// Fetch schedule details with product information
+$query = "SELECT s.*, p.product_name, p.capacity, b.brand_name, c.category_name
+          FROM installer_schedules s
+          LEFT JOIN products p ON s.products_to_install = p.id
+          LEFT JOIN brands b ON p.brand_id = b.brand_id
+          LEFT JOIN category c ON p.category_id = c.category_id
+          WHERE s.id = ? AND s.installer_name = ?";
 $stmt = $conn->prepare($query);
 $stmt->bind_param("is", $schedule_id, $installer_name);
 $stmt->execute();
@@ -98,6 +103,43 @@ if (!$schedule) {
             color: #4e73df;
             margin-right: 10px;
         }
+        .product-detail-item {
+            background: linear-gradient(135deg, #f8f9fc 0%, #e9ecef 100%);
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .product-detail-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            border-color: #4e73df;
+        }
+        .product-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        .product-name {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #2c3e50;
+            flex: 1;
+            min-width: 200px;
+        }
+        .quantity-info {
+            background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 2px 8px rgba(78, 115, 223, 0.3);
+            white-space: nowrap;
+        }
         .product-badge {
             display: inline-block;
             background: #e9ecef;
@@ -115,10 +157,20 @@ if (!$schedule) {
             border-radius: 10px;
             transition: all 0.3s ease;
         }
-        .back-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            color: white;
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .product-info {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            .product-name {
+                min-width: auto;
+                width: 100%;
+            }
+            .quantity-info {
+                align-self: flex-end;
+            }
         }
     </style>
 </head>
@@ -218,18 +270,37 @@ if (!$schedule) {
                                 </div>
 
                                 <!-- Products to Install -->
-                                <?php if (!empty($schedule['products_to_install'])): ?>
+                                <?php if (!empty($schedule['product_name'])): ?>
                                 <div class="info-section">
                                     <h5 class="text-primary mb-3">
                                         <i class="fas fa-box mr-2"></i>Products to Install
                                     </h5>
                                     <div class="ml-4">
                                         <?php 
-                                        $products = explode(',', $schedule['products_to_install']);
-                                        foreach($products as $product): 
+                                        $quantity = isset($schedule['quantity_to_install']) ? $schedule['quantity_to_install'] : 1;
+                                        $product_display = $schedule['product_name'];
+                                        
+                                        // Add capacity if available
+                                        if (!empty($schedule['capacity'])) {
+                                            $product_display .= " ({$schedule['capacity']})";
+                                        }
+                                        
+                                        // Add brand if available
+                                        if (!empty($schedule['brand_name'])) {
+                                            $product_display .= " - {$schedule['brand_name']}";
+                                        }
+                                        
+                                        // Add category if available
+                                        if (!empty($schedule['category_name'])) {
+                                            $product_display .= " [{$schedule['category_name']}]";
+                                        }
                                         ?>
-                                            <span class="product-badge"><?php echo htmlspecialchars(trim($product)); ?></span>
-                                        <?php endforeach; ?>
+                                        <div class="product-detail-item">
+                                            <div class="product-info">
+                                                <span class="product-name"><?php echo htmlspecialchars($product_display); ?></span>
+                                                <span class="quantity-info">Quantity: <strong><?php echo $quantity; ?></strong></span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                                 <?php endif; ?>
