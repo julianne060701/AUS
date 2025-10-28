@@ -1,5 +1,11 @@
 <?php
-session_start();
+// Start session only if it's not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Log the logout attempt for debugging
+error_log("Logout attempt by user: " . (isset($_SESSION['user_id']) ? $_SESSION['user_id'] : 'unknown'));
 
 // Clear all session variables
 $_SESSION = array();
@@ -20,6 +26,9 @@ $_SESSION['logout_message'] = 'You have been successfully logged out.';
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
+
+// Log successful logout
+error_log("Logout successful, redirecting to login");
 
 // Redirect to login page
 header("Location: login.php");

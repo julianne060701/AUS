@@ -513,17 +513,24 @@ include '../config/conn.php';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-    $(document).ready(function () {
-        var table = $('#dataTable').DataTable({
-            "pageLength": 10,
-            "ordering": true,
-            "searching": true,
-            "responsive": true,
-            "order": [[4, 'asc'], [1, 'asc'], [0, 'asc']], // Sort by category, then brand, then product name
-            "columnDefs": [
-                { "orderable": false, "targets": -1 }
-            ]
-        });
+     $(document).ready(function () {
+         // Check if DataTable is already initialized
+         var table;
+         if ($.fn.DataTable.isDataTable('#dataTable')) {
+             // If already initialized, destroy and reinitialize with custom options
+             $('#dataTable').DataTable().destroy();
+         }
+         
+         table = $('#dataTable').DataTable({
+             "pageLength": 10,
+             "ordering": true,
+             "searching": true,
+             "responsive": true,
+             "order": [[4, 'asc'], [1, 'asc'], [0, 'asc']], // Sort by category, then brand, then product name
+             "columnDefs": [
+                 { "orderable": false, "targets": -1 }
+             ]
+         });
 
         // Category filter functionality
         $('#categoryFilter').on('change', function() {

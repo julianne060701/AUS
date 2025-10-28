@@ -22,8 +22,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $schedule_time = mysqli_real_escape_string($conn, $_POST['schedule_time']);
     $service_type = mysqli_real_escape_string($conn, $_POST['service_type']);
     $products_to_install = mysqli_real_escape_string($conn, $_POST['products_to_install']);
+    $quantity_to_install = (int)$_POST['quantity_to_install'];
     $notes = mysqli_real_escape_string($conn, $_POST['notes']);
     $status = 'Scheduled';
+    
+    // Validate quantity
+    if ($quantity_to_install < 1) {
+        $quantity_to_install = 1;
+    }
     
     $image_path = '';
     
@@ -47,8 +53,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         }
     }
 
-    $query = "INSERT INTO installer_schedules (installer_name, customer_name, contact_number, address, schedule_date, schedule_time, service_type, products_to_install, image_path, notes, status) 
-              VALUES ('$installer_name', '$customer_name', '$contact_number', '$address', '$schedule_date', '$schedule_time', '$service_type', '$products_to_install', '$image_path', '$notes', '$status')";
+    $query = "INSERT INTO installer_schedules (installer_name, customer_name, contact_number, address, schedule_date, schedule_time, service_type, products_to_install, quantity_to_install, image_path, notes, status) 
+              VALUES ('$installer_name', '$customer_name', '$contact_number', '$address', '$schedule_date', '$schedule_time', '$service_type', '$products_to_install', '$quantity_to_install', '$image_path', '$notes', '$status')";
     
     if (mysqli_query($conn, $query)) {
         $message = "Installer schedule added successfully!";
@@ -135,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="">Select Product</option>
                         <?php
                         // Fetch products from database
-                        $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
+                        $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
                                           FROM products p 
                                           LEFT JOIN category c ON p.category_id = c.category_id 
                                           LEFT JOIN brands b ON p.brand_id = b.brand_id 
@@ -155,6 +161,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 if (!empty($product['category_name'])) {
                                     $product_display .= " [{$product['category_name']}]";
                                 }
+                                // Add quantity information
+                                $product_display .= " - Qty Left: {$product['quantity']}";
                                 echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
                             }
                         } else {
@@ -163,6 +171,12 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         ?>
                     </select>
                     <small class="form-text text-muted">Select the product to be installed</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="quantity_to_install">Quantity *</label>
+                    <input type="number" class="form-control" id="quantity_to_install" name="quantity_to_install" min="1" max="100" value="1" required>
+                    <small class="form-text text-muted">How many units to install</small>
                 </div>
 
                 <div class="form-group">

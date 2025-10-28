@@ -85,7 +85,6 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
-    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/ui-lightness/jquery-ui.css">
     <style>
         * {
@@ -1559,8 +1558,14 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             echo '</div>';
                                             echo '</div>';
                                             echo '<div class="card-actions">';
-                                            echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View</button>';
-                                            echo '<button class="action-btn btn-secondary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Edit</button>';
+                                            if ($schedule['status'] == 'Completed') {
+                                                // For completed schedules, show only View button
+                                                echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View Details</button>';
+                                            } else {
+                                                // For non-completed schedules, show both View and Edit buttons
+                                                echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">View</button>';
+                                                echo '<button class="action-btn btn-secondary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Edit</button>';
+                                            }
                                             echo '</div>';
                                             echo '</div>';
                                         }
@@ -1675,12 +1680,15 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 <select class="form-control" id="products_to_install_dropdown" name="products_to_install_dropdown">
                                     <option value="">Select Product</option>
                                     <?php
-                                    // Fetch products from database
-                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
+                                    // Fetch products that HAVE been sold (quantity sold > 0)
+                                    $products_query = "SELECT DISTINCT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
+                                                      COALESCE(SUM(sales.quantity_sold), 0) as total_sold
                                                       FROM products p 
                                                       LEFT JOIN category c ON p.category_id = c.category_id 
                                                       LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                                      WHERE p.quantity > 0 
+                                                      LEFT JOIN aircon_sales sales ON sales.product_id = p.id
+                                                      GROUP BY p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name
+                                                      HAVING total_sold > 0
                                                       ORDER BY p.product_name ASC";
                                     $products_result = mysqli_query($conn, $products_query);
                                     
@@ -1696,9 +1704,12 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             if (!empty($product['category_name'])) {
                                                 $product_display .= " [{$product['category_name']}]";
                                             }
-                                            // Add quantity information
-                                            $product_display .= " - Qty Left: {$product['quantity']}";
-                                            echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                            // Add quantity sold left information
+                                            $product_display .= " - Qty Sold Left: {$product['total_sold']}";
+                                            
+                                            // Disable option if no quantity sold left
+                                            $disabled = ($product['total_sold'] <= 0) ? ' disabled' : '';
+                                            echo "<option value=\"{$product['id']}\"{$disabled}>" . htmlspecialchars($product_display) . "</option>";
                                         }
                                     } else {
                                         echo "<option value=''>No products available</option>";
@@ -1855,12 +1866,15 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 <select class="form-control" id="edit_products_to_install_dropdown" name="products_to_install_dropdown">
                                     <option value="">Select Product</option>
                                     <?php
-                                    // Fetch products from database
-                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
+                                    // Fetch products that HAVE been sold (quantity sold > 0)
+                                    $products_query = "SELECT DISTINCT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
+                                                      COALESCE(SUM(sales.quantity_sold), 0) as total_sold
                                                       FROM products p 
                                                       LEFT JOIN category c ON p.category_id = c.category_id 
                                                       LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                                      WHERE p.quantity > 0 
+                                                      LEFT JOIN aircon_sales sales ON sales.product_id = p.id
+                                                      GROUP BY p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name
+                                                      HAVING total_sold > 0
                                                       ORDER BY p.product_name ASC";
                                     $products_result = mysqli_query($conn, $products_query);
                                     
@@ -1876,9 +1890,12 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             if (!empty($product['category_name'])) {
                                                 $product_display .= " [{$product['category_name']}]";
                                             }
-                                            // Add quantity information
-                                            $product_display .= " - Qty Left: {$product['quantity']}";
-                                            echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                            // Add quantity sold left information
+                                            $product_display .= " - Qty Sold Left: {$product['total_sold']}";
+                                            
+                                            // Disable option if no quantity sold left
+                                            $disabled = ($product['total_sold'] <= 0) ? ' disabled' : '';
+                                            echo "<option value=\"{$product['id']}\"{$disabled}>" . htmlspecialchars($product_display) . "</option>";
                                         }
                                     } else {
                                         echo "<option value=''>No products available</option>";
@@ -1898,7 +1915,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         <div class="col-md-4">
                             <div class="form-group">
                                 <label for="edit_quantity_to_install">Quantity *</label>
-                                <input type="number" class="form-control" id="edit_quantity_to_install" name="quantity_to_install" min="1" max="100" value="1" required>
+                                <input type="number" class="form-control" id="edit_quantity_to_install" name="quantity_to_install" min="1" max="100" value="1" required style="background-color: #f8f9fa;">
                                 <small class="form-text text-muted">How many to install</small>
                             </div>
                         </div>
