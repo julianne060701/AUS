@@ -196,6 +196,8 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
 <head> 
     <?php include('../includes/header.php'); ?> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
@@ -310,6 +312,14 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                 <div class="container-fluid"> 
                     <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print"> 
                         <h1 class="h3 mb-0 text-gray-800">Inventory Report</h1>
+                        <div class="btn-group">
+                            <button class="btn btn-success" onclick="showPDFOptions()">
+                                <i class="fas fa-file-pdf"></i> Download PDF
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="window.print()">
+                                <i class="fas fa-print"></i> Print
+                            </button>
+                        </div>
                     </div>
                     
                     <div class="filter-card no-print">
@@ -804,6 +814,90 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
 
+    <!-- PDF Download Options Modal -->
+    <div class="modal fade" id="pdfOptionsModal" tabindex="-1" aria-labelledby="pdfOptionsModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="pdfOptionsModalLabel">
+                        <i class="fas fa-file-pdf text-success"></i> PDF Download Options
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-4">
+                        <h6 class="text-muted">Select which sections to include in your PDF:</h6>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeOverview" checked>
+                                <label class="form-check-label" for="includeOverview">
+                                    <i class="fas fa-chart-pie text-primary"></i> <strong>Overview</strong>
+                                    <small class="text-muted d-block">Summary statistics and key metrics</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeStockIn">
+                                <label class="form-check-label" for="includeStockIn">
+                                    <i class="fas fa-arrow-down text-success"></i> <strong>Stock In Report</strong>
+                                    <small class="text-muted d-block">Products added to inventory (<?= count($stock_in_data) ?> records)</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeStockOut">
+                                <label class="form-check-label" for="includeStockOut">
+                                    <i class="fas fa-arrow-up text-warning"></i> <strong>Stock Out Report</strong>
+                                    <small class="text-muted d-block">Products removed from inventory (<?= count($stock_out_data) ?> records)</small>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeCurrentStock">
+                                <label class="form-check-label" for="includeCurrentStock">
+                                    <i class="fas fa-boxes text-info"></i> <strong>Current Stock Levels</strong>
+                                    <small class="text-muted d-block">Current inventory status (<?= count($inventory_data) ?> products)</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeAnalytics">
+                                <label class="form-check-label" for="includeAnalytics">
+                                    <i class="fas fa-chart-line text-secondary"></i> <strong>Analytics & Charts</strong>
+                                    <small class="text-muted d-block">Category and brand analysis</small>
+                                </label>
+                            </div>
+                            
+                            <div class="form-check mb-3">
+                                <input class="form-check-input" type="checkbox" id="includeLowStock" <?= !empty($low_stock_data) ? '' : 'disabled' ?>>
+                                <label class="form-check-label" for="includeLowStock">
+                                    <i class="fas fa-exclamation-triangle text-danger"></i> <strong>Low Stock Alert</strong>
+                                    <small class="text-muted d-block">Critical stock levels (<?= count($low_stock_data) ?> items)</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info mt-4">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> The PDF will be generated in landscape orientation on letter/short bond paper size for optimal table viewing.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" onclick="generateSelectedPDF()">
+                        <i class="fas fa-download"></i> Generate PDF
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
@@ -1239,6 +1333,316 @@ $stock_out_data = $result->fetch_all(MYSQLI_ASSOC);
                 }
             }
         });
+
+        // PDF Download Functionality
+        function showPDFOptions() {
+            const modal = new bootstrap.Modal(document.getElementById('pdfOptionsModal'));
+            modal.show();
+        }
+        
+        function generateSelectedPDF() {
+            // Get selected options
+            const selectedSections = {
+                overview: document.getElementById('includeOverview').checked,
+                stockIn: document.getElementById('includeStockIn').checked,
+                stockOut: document.getElementById('includeStockOut').checked,
+                currentStock: document.getElementById('includeCurrentStock').checked,
+                analytics: document.getElementById('includeAnalytics').checked,
+                lowStock: document.getElementById('includeLowStock').checked
+            };
+            
+            // Check if at least one section is selected
+            const hasSelection = Object.values(selectedSections).some(selected => selected);
+            if (!hasSelection) {
+                alert('Please select at least one section to include in the PDF.');
+                return;
+            }
+            
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('pdfOptionsModal'));
+            modal.hide();
+            
+            // Generate PDF with selected sections
+            downloadPDF(selectedSections);
+        }
+        
+        function downloadPDF(selectedSections = null) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF('landscape', 'mm', 'letter'); // Landscape orientation, letter size
+            
+            // Set up fonts and colors
+            doc.setFont('helvetica');
+            
+            // Add header
+            doc.setFontSize(20);
+            doc.setTextColor(40, 40, 40);
+            doc.text('Professional Inventory Report', 20, 20);
+            
+            // Add report details
+            doc.setFontSize(12);
+            doc.setTextColor(100, 100, 100);
+            doc.text('Generated on: ' + new Date().toLocaleString(), 20, 30);
+            
+            // Add period information
+            const periodText = getPeriodText();
+            doc.text('Period: ' + periodText, 20, 36);
+            
+            let currentY = 50;
+            
+            // Add Overview section if selected
+            if (!selectedSections || selectedSections.overview) {
+                doc.setFontSize(14);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Summary', 20, currentY);
+                
+                // Summary data
+                doc.setFontSize(10);
+                doc.setTextColor(60, 60, 60);
+                const summaryData = [
+                    ['Total Products', '<?= number_format($summary['total_products'] ?? 0) ?>'],
+                    ['Total Units', '<?= number_format($summary['total_quantity'] ?? 0) ?>'],
+                    ['Stock In Records', '<?= number_format(count($stock_in_data)) ?>'],
+                    ['Stock Out Records', '<?= number_format(count($stock_out_data)) ?>']
+                ];
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Metric', 'Value']],
+                    body: summaryData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [102, 126, 234], textColor: 255 },
+                    styles: { fontSize: 10, cellPadding: 3 }
+                });
+                
+                currentY = doc.lastAutoTable.finalY + 15;
+            }
+            
+            // Add Stock In table if selected
+            if ((!selectedSections || selectedSections.stockIn) && <?= count($stock_in_data) ?> > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Stock In Report', 20, currentY);
+                
+                const stockInData = <?= json_encode($stock_in_data) ?>.map(item => [
+                    item.product_name || 'N/A',
+                    item.serial_number || 'N/A',
+                    item.category_name || 'Uncategorized',
+                    item.brand_name || 'No Brand',
+                    item.quantity || '0',
+                    'PHP ' + (parseFloat(item.buying_price) || 0).toFixed(2),
+                    new Date(item.created_at).toLocaleDateString()
+                ]);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Product Name', 'Model/Serial', 'Category', 'Brand', 'Quantity', 'Unit Price', 'Date Added']],
+                    body: stockInData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [46, 204, 113], textColor: 255 },
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    columnStyles: {
+                        4: { halign: 'center' },
+                        5: { halign: 'right' },
+                        6: { halign: 'center' }
+                    }
+                });
+                
+                currentY = doc.lastAutoTable.finalY + 15;
+            }
+            
+            // Add Stock Out table if selected
+            if ((!selectedSections || selectedSections.stockOut) && <?= count($stock_out_data) ?> > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Stock Out Report', 20, currentY);
+                
+                const stockOutData = <?= json_encode($stock_out_data) ?>.map(item => [
+                    item.product_name || 'N/A',
+                    item.serial_number || 'N/A',
+                    item.quantity || '0',
+                    item.cashier || 'System',
+                    new Date(item.created_at).toLocaleDateString(),
+                    '#' + (item.sale_id || 'N/A')
+                ]);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Product Name', 'Model/Serial', 'Quantity', 'Processed By', 'Date Out', 'Reference ID']],
+                    body: stockOutData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [230, 126, 34], textColor: 255 },
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    columnStyles: {
+                        2: { halign: 'center' },
+                        4: { halign: 'center' },
+                        5: { halign: 'center' }
+                    }
+                });
+                
+                currentY = doc.lastAutoTable.finalY + 15;
+            }
+            
+            // Add Current Stock table if selected
+            if ((!selectedSections || selectedSections.currentStock) && <?= count($inventory_data) ?> > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Current Stock Levels', 20, currentY);
+                
+                const currentStockData = <?= json_encode($inventory_data) ?>.map(item => [
+                    item.product_name || 'N/A',
+                    item.serial_number || 'N/A',
+                    item.category_name || 'Uncategorized',
+                    item.brand_name || 'No Brand',
+                    item.quantity || '0',
+                    item.quantity <= 5 ? 'Low Stock' : item.quantity <= 20 ? 'Medium Stock' : 'Good Stock',
+                    new Date(item.updated_at).toLocaleDateString()
+                ]);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Product Name', 'Model/Serial', 'Category', 'Brand', 'Current Stock', 'Status', 'Last Updated']],
+                    body: currentStockData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    columnStyles: {
+                        4: { halign: 'center' },
+                        5: { halign: 'center' },
+                        6: { halign: 'center' }
+                    }
+                });
+                
+                currentY = doc.lastAutoTable.finalY + 15;
+            }
+            
+            // Add Analytics section if selected
+            if (!selectedSections || selectedSections.analytics) {
+                doc.setFontSize(14);
+                doc.setTextColor(40, 40, 40);
+                doc.text('Analytics Summary', 20, currentY);
+                
+                // Category analysis
+                const categoryData = <?= json_encode($category_data) ?>;
+                if (categoryData.length > 0) {
+                    doc.setFontSize(12);
+                    doc.text('Inventory by Category', 20, currentY + 10);
+                    
+                    const categoryTableData = categoryData.map(item => [
+                        item.category_name || 'Uncategorized',
+                        item.product_count || '0',
+                        item.total_quantity || '0',
+                        'PHP ' + (parseFloat(item.total_value) || 0).toFixed(2)
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: currentY + 15,
+                        head: [['Category', 'Products', 'Total Quantity', 'Total Value']],
+                        body: categoryTableData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [155, 89, 182], textColor: 255 },
+                        styles: { fontSize: 9, cellPadding: 2 },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'right' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 10;
+                }
+                
+                // Brand analysis
+                const brandData = <?= json_encode($brand_data) ?>;
+                if (brandData.length > 0) {
+                    doc.setFontSize(12);
+                    doc.text('Inventory by Brand', 20, currentY);
+                    
+                    const brandTableData = brandData.map(item => [
+                        item.brand_name || 'No Brand',
+                        item.product_count || '0',
+                        item.total_quantity || '0',
+                        'PHP ' + (parseFloat(item.total_value) || 0).toFixed(2)
+                    ]);
+                    
+                    doc.autoTable({
+                        startY: currentY + 5,
+                        head: [['Brand', 'Products', 'Total Quantity', 'Total Value']],
+                        body: brandTableData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [52, 152, 219], textColor: 255 },
+                        styles: { fontSize: 9, cellPadding: 2 },
+                        columnStyles: {
+                            1: { halign: 'center' },
+                            2: { halign: 'center' },
+                            3: { halign: 'right' }
+                        }
+                    });
+                    
+                    currentY = doc.lastAutoTable.finalY + 15;
+                }
+            }
+            
+            // Add Low Stock Alert if selected and applicable
+            const lowStockData = <?= json_encode($low_stock_data) ?>;
+            if ((!selectedSections || selectedSections.lowStock) && lowStockData.length > 0) {
+                doc.setFontSize(14);
+                doc.setTextColor(231, 76, 60);
+                doc.text('Low Stock Alert', 20, currentY);
+                
+                const lowStockTableData = lowStockData.map(item => [
+                    item.product_name || 'N/A',
+                    item.serial_number || 'N/A',
+                    item.category_name || 'Uncategorized',
+                    item.brand_name || 'No Brand',
+                    item.quantity || '0',
+                    'Critical'
+                ]);
+                
+                doc.autoTable({
+                    startY: currentY + 5,
+                    head: [['Product Name', 'Model/Serial', 'Category', 'Brand', 'Current Stock', 'Status']],
+                    body: lowStockTableData,
+                    theme: 'grid',
+                    headStyles: { fillColor: [231, 76, 60], textColor: 255 },
+                    styles: { fontSize: 8, cellPadding: 2 },
+                    columnStyles: {
+                        4: { halign: 'center' },
+                        5: { halign: 'center' }
+                    }
+                });
+            }
+            
+            // Add footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                doc.text('Generated by AUS Inventory System', 20, doc.internal.pageSize.height - 10);
+            }
+            
+            // Download the PDF
+            const selectedSectionsText = selectedSections ? 
+                Object.keys(selectedSections).filter(key => selectedSections[key]).join('_') : 'all';
+            const fileName = 'Inventory_Report_' + selectedSectionsText + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+            doc.save(fileName);
+        }
+        
+        function getPeriodText() {
+            const filter = '<?= $filter ?>';
+            const startDate = '<?= $start_date ?>';
+            const endDate = '<?= $end_date ?>';
+            
+            switch(filter) {
+                case 'today': return 'Today';
+                case 'week': return 'This Week';
+                case 'month': return 'This Month';
+                case 'year': return 'This Year';
+                case 'custom': return startDate + ' to ' + endDate;
+                default: return 'Overall';
+            }
+        }
     </script>
 </body> 
 </html>

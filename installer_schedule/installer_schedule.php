@@ -87,9 +87,6 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/ui-lightness/jquery-ui.css">
-<<<<<<< HEAD
-    <link rel="stylesheet" href="includes/installer_schedule.css">
-=======
     <style>
         * {
             margin: 0;
@@ -950,7 +947,6 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
             box-shadow: 0 8px 32px rgba(0,0,0,0.2);
         }
     </style>
->>>>>>> d78320fafe52029edfed54f069fea34f7f3dd096
 </head>
 <body id="page-top">
 <div id="wrapper">

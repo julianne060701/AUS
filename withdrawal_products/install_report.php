@@ -140,7 +140,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
 <head> 
     <?php include('../includes/header.php'); ?> 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <link href="../vendor/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css">
     <link href="https://fonts.googleapis.com/css?family=Nunito:200,300,400,700,900" rel="stylesheet">
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
@@ -162,7 +161,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
         .badge-in-progress { background-color: #17a2b8; color: #fff; }
         .badge-completed { background-color: #28a745; color: #fff; }
         .badge-cancelled { background-color: #dc3545; color: #fff; }
-        .print-header { display: none; }
         .section-checkbox { margin-right: 15px; }
         .section-checkbox label { font-weight: 500; cursor: pointer; }
         
@@ -232,27 +230,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             to { opacity: 1; transform: translateY(0); }
         }
         
-        @media print {
-            body * { visibility: hidden; }
-            .printable-section, .printable-section * { visibility: visible; }
-            .print-header { visibility: visible !important; display: block !important; }
-            #wrapper, #content-wrapper { margin: 0; padding: 0; }
-            .sidebar, .topbar, .filter-card, .no-print, .nav-tabs { display: none !important; }
-            /* Hide search controls and pagination in print */
-            .input-group, .form-select, #pagination, .dataTables_info, .btn-outline-secondary { display: none !important; }
-            .card-header .text-muted { display: none !important; }
-            .card { page-break-inside: avoid; border: 1px solid #ddd; box-shadow: none; }
-            .summary-card:hover { transform: none; }
-            .table-responsive { max-height: none; overflow: visible; }
-            .chart-container { page-break-inside: avoid; }
-            .print-header { display: block; text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333; }
-            .tab-content { padding-top: 0; }
-            .tab-pane { display: block !important; opacity: 1 !important; }
-            /* Ensure all table rows are visible */
-            #detailedTableBody tr { display: table-row !important; }
-            /* Remove onclick cursors */
-            th { cursor: default !important; }
-        }
     </style>
 </head> 
 <body id="page-top"> 
@@ -262,62 +239,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             <div id="content"> 
                 <?php include('../includes/topbar.php'); ?> 
                 <div class="container-fluid"> 
-                    <div class="d-sm-flex align-items-center justify-content-between mb-4 no-print"> 
+                    <div class="d-sm-flex align-items-center justify-content-between mb-4"> 
                         <h1 class="h3 mb-0 text-gray-800">Installation Report</h1>
-                        <div>
-                            <button class="btn btn-primary" onclick="showPrintModal()"><i class="fas fa-print"></i> Print Report</button>
-                            <button class="btn btn-success" onclick="showDownloadModal()"><i class="fas fa-file-pdf"></i> Download PDF</button>
-                        </div>
                     </div>
 
-                    <!-- Print/Download Selection Modal -->
-                    <div class="modal fade" id="selectionModal" tabindex="-1" role="dialog">
-                        <div class="modal-dialog" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h5 class="modal-title" id="modalTitle">Select Sections to Print</h5>
-                                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                                        <span aria-hidden="true">&times;</span>
-                                    </button>
-                                </div>
-                                <div class="modal-body">
-                                    <div class="form-group">
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" id="selectAll" checked onchange="toggleAllSections()">
-                                            <label for="selectAll"><strong>Select All</strong></label>
-                                        </div>
-                                        <hr>
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" class="section-check" id="check-summary" checked>
-                                            <label for="check-summary">Summary Cards</label>
-                                        </div>
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" class="section-check" id="check-charts" checked>
-                                            <label for="check-charts">Installation Trend & Service Types</label>
-                                        </div>
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" class="section-check" id="check-installer" checked>
-                                            <label for="check-installer">Installer Performance</label>
-                                        </div>
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" class="section-check" id="check-service" checked>
-                                            <label for="check-service">Service Type Breakdown</label>
-                                        </div>
-                                        <div class="section-checkbox">
-                                            <input type="checkbox" class="section-check" id="check-detailed" checked>
-                                            <label for="check-detailed">Detailed Installation Schedules (Complete Table)</label>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                                    <button type="button" class="btn btn-primary" id="confirmBtn" onclick="confirmAction()">Print</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="filter-card no-print">
+                    <div class="filter-card">
                         <h5 class="mb-3">Filter Installation Data</h5>
                         <form method="GET" id="filterForm">
                             <div class="row align-items-end">
@@ -348,23 +275,9 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     </div>
 
                     <div id="printableArea">
-                        <div class="print-header">
-                            <h2>Installation Report</h2>
-                            <p>Generated on: <?php echo date('F j, Y, g:i a'); ?></p>
-                            <p>Period: <?php 
-                                switch($filter) {
-                                    case 'today': echo 'Today'; break;
-                                    case 'week': echo 'This Week'; break;
-                                    case 'month': echo 'This Month'; break;
-                                    case 'year': echo 'This Year'; break;
-                                    case 'custom': echo htmlspecialchars($start_date) . ' to ' . htmlspecialchars($end_date); break;
-                                    default: echo 'Overall'; break;
-                                }
-                            ?></p>
-                        </div>
 
                         <!-- Tab Navigation -->
-                        <ul class="nav nav-tabs no-print" id="reportTabs" role="tablist">
+                        <ul class="nav nav-tabs" id="reportTabs" role="tablist">
                             <li class="nav-item" role="presentation">
                                 <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button" role="tab" aria-controls="summary" aria-selected="true">
                                     <i class="fas fa-chart-pie"></i> Summary
@@ -582,7 +495,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                 </div>
                                                 <div class="card-body">
                                                     <!-- Search and Filter Controls -->
-                                                    <div class="row mb-3 no-print">
+                                                    <div class="row mb-3">
                                                         <div class="col-md-4">
                                                             <div class="input-group">
                                                                 <span class="input-group-text"><i class="fas fa-search"></i></span>
@@ -677,7 +590,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                     </div>
 
                                                     <!-- Pagination -->
-                                                    <div class="d-flex justify-content-between align-items-center mt-3 no-print">
+                                                    <div class="d-flex justify-content-between align-items-center mt-3">
                                                         <div class="text-muted">
                                                             Showing <span id="showingStart">1</span> to <span id="showingEnd">25</span> of <span id="totalFiltered"><?= count($install_data) ?></span> entries
                                                         </div>
@@ -704,410 +617,19 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        let currentAction = 'print';
-
-        function showPrintModal() {
-            currentAction = 'print';
-            document.getElementById('modalTitle').textContent = 'Select Sections to Print';
-            document.getElementById('confirmBtn').textContent = 'Print';
-            $('#selectionModal').modal('show');
-        }
-
-        function showDownloadModal() {
-            currentAction = 'download';
-            document.getElementById('modalTitle').textContent = 'Download Installation Report';
-            document.getElementById('confirmBtn').textContent = 'Download PDF';
-            
-            // Set default to only detailed table
-            document.getElementById('selectAll').checked = false;
-            document.getElementById('check-summary').checked = false;
-            document.getElementById('check-charts').checked = false;
-            document.getElementById('check-installer').checked = false;
-            document.getElementById('check-service').checked = false;
-            document.getElementById('check-detailed').checked = true;
-            
-            $('#selectionModal').modal('show');
-        }
-
-        function toggleAllSections() {
-            const selectAll = document.getElementById('selectAll');
-            const checkboxes = document.querySelectorAll('.section-check');
-            checkboxes.forEach(cb => cb.checked = selectAll.checked);
-        }
-
-        document.querySelectorAll('.section-check').forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const allChecked = Array.from(document.querySelectorAll('.section-check')).every(cb => cb.checked);
-                document.getElementById('selectAll').checked = allChecked;
-            });
-        });
-
-        function confirmAction() {
-            const sections = {
-                summary: document.getElementById('check-summary').checked,
-                charts: document.getElementById('check-charts').checked,
-                installer: document.getElementById('check-installer').checked,
-                service: document.getElementById('check-service').checked,
-                detailed: document.getElementById('check-detailed').checked
-            };
-
-            // Hide all sections first
-            document.querySelectorAll('.section-content').forEach(section => {
-                section.classList.remove('printable-section');
-            });
-
-            // Show only selected sections
-            if(sections.summary) document.getElementById('section-summary').classList.add('printable-section');
-            if(sections.charts) document.getElementById('section-charts').classList.add('printable-section');
-            if(sections.installer) document.getElementById('section-installer').classList.add('printable-section');
-            if(sections.service) document.getElementById('section-service').classList.add('printable-section');
-            if(sections.detailed) {
-                document.getElementById('section-detailed').classList.add('printable-section');
-                // Show all rows in the detailed table for print/PDF
-                // Make sure we use allTableData if filteredData is empty
-                if (filteredData.length === 0 && allTableData.length > 0) {
-                    filteredData = [...allTableData];
-                }
-                showAllTableRowsForPrint();
-            }
-
-            $('#selectionModal').modal('hide');
-
-            if(currentAction === 'print') {
-                setTimeout(() => {
-                    window.print();
-                    // Restore pagination after print
-                    setTimeout(() => restoreTablePagination(), 500);
-                }, 300);
-            } else {
-                setTimeout(() => {
-                    downloadSelectedPDF();
-                    // Restore pagination after download
-                    setTimeout(() => restoreTablePagination(), 500);
-                }, 300);
-            }
-
-            // Reset after action
-            setTimeout(() => {
-                document.querySelectorAll('.section-content').forEach(section => {
-                    section.classList.add('printable-section');
-                });
-            }, 2000);
-        }
-
-        function downloadSelectedPDF() {
-            // Store original table state
-            const originalTableHTML = document.getElementById('detailedTableBody').innerHTML;
-            
-            // Show all rows for PDF
-            showAllTableRowsForPrint();
-            
-            // Create a clean version for PDF with only table content
-            const cleanContent = createCleanPDFContent();
-            
-            // Create temporary container - no padding for edge-to-edge
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = cleanContent;
-            tempDiv.style.padding = '0';
-            tempDiv.style.margin = '0';
-            tempDiv.style.backgroundColor = 'white';
-            tempDiv.style.width = '100%';
-            tempDiv.style.maxWidth = '100%';
-            tempDiv.style.minWidth = '100%';
-            tempDiv.style.boxSizing = 'border-box';
-            tempDiv.style.position = 'relative';
-            tempDiv.style.textAlign = 'center';
-            tempDiv.style.overflow = 'visible';
-            tempDiv.style.fontFamily = 'Arial, sans-serif';
-            document.body.appendChild(tempDiv);
-            
-            const opt = {
-                margin: [0.2, 0.2, 0.2, 0.2],
-                filename: 'installation_report_' + new Date().toISOString().slice(0,10) + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { 
-                    scale: 2.2, 
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true,
-                    width: 1800,
-                    height: 1200,
-                    scrollX: 0,
-                    scrollY: 0
-                },
-                jsPDF: { 
-                    unit: 'in', 
-                    format: 'letter', 
-                    orientation: 'landscape',
-                    compress: true
-                },
-                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-            };
-            
-            html2pdf().set(opt).from(tempDiv).save().then(() => {
-                // Remove temporary div
-                document.body.removeChild(tempDiv);
-                // Restore original table state
-                document.getElementById('detailedTableBody').innerHTML = originalTableHTML;
-            });
-        }
-
-        function createCleanPDFContent() {
-            const sections = {
-                summary: document.getElementById('check-summary').checked,
-                charts: document.getElementById('check-charts').checked,
-                installer: document.getElementById('check-installer').checked,
-                service: document.getElementById('check-service').checked,
-                detailed: document.getElementById('check-detailed').checked
-            };
-
-            let content = `
-                <div class="print-header" style="display: block !important; text-align: center; margin-bottom: 20px; padding-bottom: 10px; border-bottom: 2px solid #333;">
-                    <h2 style="margin: 0; color: #333;">Installation Report</h2>
-                    <p style="margin: 5px 0; color: #666;">Generated on: ${new Date().toLocaleString()}</p>
-                    <p style="margin: 5px 0; color: #666;">Period: ${getCurrentFilterText()}</p>
-                </div>
-            `;
-
-            if (sections.summary) {
-                content += document.getElementById('section-summary').outerHTML;
-            }
-            
-            if (sections.charts) {
-                content += document.getElementById('section-charts').outerHTML;
-            }
-            
-            if (sections.installer) {
-                content += createCleanTableContent('installer');
-            }
-            
-            if (sections.service) {
-                content += createCleanTableContent('service');
-            }
-            
-            if (sections.detailed) {
-                content += createCleanDetailedTableContent();
-            }
-
-            return content;
-        }
-
-        function createCleanTableContent(tableType) {
-            const tableId = tableType === 'installer' ? 'installerTable' : 'serviceTable';
-            const table = document.querySelector(`#section-${tableType} table`);
-            
-            if (!table) return '';
-            
-            // Clone the table
-            const cleanTable = table.cloneNode(true);
-            
-            // Remove sort icons and onclick
-            cleanTable.querySelectorAll('th').forEach(th => {
-                th.removeAttribute('onclick');
-                th.style.cursor = 'default';
-                const icon = th.querySelector('i');
-                if (icon) icon.remove();
-            });
-            
-            // Create clean card wrapper
-            const cardTitle = getTableTitle(tableType);
-            return `
-                <div class="card shadow mb-4" style="page-break-inside: avoid;">
-                    <div class="card-header py-3">
-                        <h6 class="m-0 font-weight-bold text-primary">${cardTitle}</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            ${cleanTable.outerHTML}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        function createCleanDetailedTableContent() {
-            // Get all filtered data (not just current page)
-            const table = document.getElementById('detailedTable');
-            
-            if (!table) return '';
-            
-            // Use allTableData if filteredData is empty or not initialized
-            const dataToUse = (filteredData && filteredData.length > 0) ? filteredData : allTableData;
-            
-            // Create a completely new table structure - fully extended to edges
-            const cleanTable = document.createElement('table');
-            cleanTable.style.fontSize = '10px';
-            cleanTable.style.width = '100%';
-            cleanTable.style.minWidth = '100%';
-            cleanTable.style.tableLayout = 'fixed';
-            cleanTable.style.margin = '0';
-            cleanTable.style.padding = '0';
-            cleanTable.style.borderCollapse = 'collapse';
-            cleanTable.style.position = 'relative';
-            cleanTable.style.border = '1px solid #333';
-            cleanTable.style.fontFamily = 'Arial, sans-serif';
-            
-            // Copy the header
-            const originalHeader = table.querySelector('thead');
-            if (originalHeader) {
-                const cleanHeader = originalHeader.cloneNode(true);
-                // Remove sort icons from header
-                cleanHeader.querySelectorAll('i').forEach(icon => icon.remove());
-                // Style header for landscape single column layout
-                const columnWidths = ['4%', '9%', '9%', '6%', '18%', '6%', '4%', '8%', '6%', '11%', '11%', '8%'];
-                cleanHeader.querySelectorAll('th').forEach((th, index) => {
-                    th.removeAttribute('onclick');
-                    th.style.cursor = 'default';
-                    th.style.fontSize = '10px';
-                    th.style.padding = '8px 4px';
-                    th.style.width = columnWidths[index] || 'auto';
-                    th.style.textAlign = 'center';
-                    th.style.fontWeight = 'bold';
-                    th.style.margin = '0';
-                    th.style.border = '1px solid #333';
-                    th.style.backgroundColor = '#1f4e79';
-                    th.style.color = 'white';
-                    th.style.textTransform = 'uppercase';
-                    th.style.fontFamily = 'Arial, sans-serif';
-                    th.style.whiteSpace = 'nowrap';
-                });
-                cleanTable.appendChild(cleanHeader);
-            }
-            
-            // Create new tbody with ALL data
-            const cleanTableBody = document.createElement('tbody');
-            
-            // Use the appropriate data source
-            if (dataToUse && dataToUse.length > 0) {
-                dataToUse.forEach((row, rowIndex) => {
-                    const tr = document.createElement('tr');
-                    
-                    // Create cells with complete data (no truncation)
-                    const cells = [
-                        row.id,
-                        row.installer,
-                        row.customer,
-                        row.contact,
-                        row.address, // Full address, no truncation
-                        row.scheduleDate,
-                        row.time,
-                        row.serviceType,
-                        row.status,
-                        row.products, // Full products, no truncation
-                        row.notes, // Full notes, no truncation
-                        row.created
-                    ];
-                    
-                    const columnWidths = ['4%', '9%', '9%', '6%', '18%', '6%', '4%', '8%', '6%', '11%', '11%', '8%'];
-                    cells.forEach((cellData, index) => {
-                        const td = document.createElement('td');
-                        td.textContent = cellData || ''; // Handle null/undefined values
-                        td.style.fontSize = '10px';
-                        td.style.padding = '6px 4px';
-                        td.style.wordWrap = 'break-word';
-                        td.style.width = columnWidths[index] || 'auto';
-                        td.style.verticalAlign = 'middle';
-                        td.style.lineHeight = '1.2';
-                        td.style.margin = '0';
-                        td.style.border = '1px solid #333';
-                        td.style.fontFamily = 'Arial, sans-serif';
-                        
-                        // Alternating row colors - light blue and white
-                        if (rowIndex % 2 === 0) {
-                            td.style.backgroundColor = '#e6f3ff'; // Light blue
-                        } else {
-                            td.style.backgroundColor = 'white'; // White
-                        }
-                        
-                        // Special handling for specific columns
-                        if (index === 0) { // ID column
-                            td.style.textAlign = 'center';
-                            td.style.fontWeight = 'bold';
-                        } else if (index === 4 || index === 9 || index === 10) { // Address, Products, Notes
-                            td.style.textAlign = 'left';
-                            td.style.whiteSpace = 'normal';
-                        } else if (index === 5 || index === 6) { // Date and Time
-                            td.style.textAlign = 'center';
-                        } else {
-                            td.style.textAlign = 'center'; // Center align all other columns
-                        }
-                        
-                        tr.appendChild(td);
-                    });
-                    
-                    cleanTableBody.appendChild(tr);
-                });
-            } else {
-                const noDataRow = document.createElement('tr');
-                const colCount = table.querySelectorAll('th').length;
-                noDataRow.innerHTML = `<td colspan="${colCount}" class="text-center">No data available</td>`;
-                cleanTableBody.appendChild(noDataRow);
-            }
-            
-            cleanTable.appendChild(cleanTableBody);
-            
-            const recordCount = dataToUse ? dataToUse.length : 0;
-            
-            return `
-                <div style="page-break-inside: avoid; margin: 0; padding: 0; width: 100%; position: relative; columns: 1; column-count: 1;">
-                    <div style="padding: 8px 0; margin: 0; text-align: center;">
-                        <h2 style="font-size: 14px; margin: 0; font-weight: bold; color: #333; font-family: Arial, sans-serif;">Installation Report - Complete Details (${recordCount} records)</h2>
-                    </div>
-                    <div style="padding: 0; margin: 0; width: 100%; position: relative; columns: 1; column-count: 1;">
-                        <div style="margin: 0; padding: 0; width: 100%; min-width: 100%; position: relative; columns: 1; column-count: 1;">
-                            ${cleanTable.outerHTML}
-                        </div>
-                    </div>
-                </div>
-            `;
-        }
-
-        // Show all rows in table for printing
-        function showAllTableRowsForPrint() {
-            const tableBody = document.getElementById('detailedTableBody');
-            if (!tableBody) return;
-            
-            // Use allTableData if filteredData is empty or not initialized
-            const dataToShow = (filteredData && filteredData.length > 0) ? filteredData : allTableData;
-            
-            // Clear current table
-            tableBody.innerHTML = '';
-            
-            // Add all data rows
-            if (!dataToShow || dataToShow.length === 0) {
-                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data available</td></tr>';
-            } else {
-                dataToShow.forEach(row => {
-                    tableBody.appendChild(row.originalRow.cloneNode(true));
-                });
-            }
-        }
-
-        // Restore pagination after print
-        function restoreTablePagination() {
-            updateTable();
-        }
-
-        function getTableTitle(tableType) {
-            const titles = {
-                installer: 'Installer Performance',
-                service: 'Service Type Breakdown'
-            };
-            return titles[tableType] || 'Table Report';
-        }
-
-        function getCurrentFilterText() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const filter = urlParams.get('filter') || 'overall';
-            const startDate = urlParams.get('start_date') || '';
-            const endDate = urlParams.get('end_date') || '';
+        
+        
+        function getPeriodText() {
+            const filter = '<?= $filter ?>';
+            const startDate = '<?= $start_date ?>';
+            const endDate = '<?= $end_date ?>';
             
             switch(filter) {
                 case 'today': return 'Today';
                 case 'week': return 'This Week';
                 case 'month': return 'This Month';
                 case 'year': return 'This Year';
-                case 'custom': return `${startDate} to ${endDate}`;
+                case 'custom': return startDate + ' to ' + endDate;
                 default: return 'Overall';
             }
         }
@@ -1162,9 +684,441 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 });
             });
             
-            document.querySelectorAll('.section-content').forEach(section => {
-                section.classList.add('printable-section');
+            
+            
+            // Initialize detailed table functionality
+            initializeDetailedTable();
+        });
+
+        // Detailed Table Management
+        let allTableData = [];
+        let filteredData = [];
+        let currentPage = 1;
+        let rowsPerPage = 25;
+        let sortColumn = -1;
+        let sortDirection = 'asc';
+
+        function initializeDetailedTable() {
+            // Store original data
+            const tableBody = document.getElementById('detailedTableBody');
+            if (!tableBody) return;
+            
+            const rows = tableBody.querySelectorAll('tr');
+            allTableData = [];
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length > 0 && cells.length >= 12) {
+                    // Skip "no data" rows
+                    const firstCellText = cells[0].textContent.trim();
+                    if (firstCellText && !firstCellText.includes('No installation') && !firstCellText.includes('No data')) {
+                        // Get the original data from PHP variables to avoid truncation
+                        const rowId = parseInt(cells[0].textContent.trim());
+                        const originalData = <?php echo json_encode($install_data); ?>;
+                        const originalRow = originalData.find(item => item.id == rowId);
+                        
+                        allTableData.push({
+                            id: cells[0].textContent.trim(),
+                            installer: cells[1].textContent.trim(),
+                            customer: cells[2].textContent.trim(),
+                            contact: cells[3].textContent.trim(),
+                            address: originalRow ? originalRow.address : cells[4].textContent.trim(),
+                            scheduleDate: cells[5].textContent.trim(),
+                            time: cells[6].textContent.trim(),
+                            serviceType: cells[7].textContent.trim(),
+                            status: cells[8].textContent.trim(),
+                            products: originalRow ? originalRow.products_to_install : cells[9].textContent.trim(),
+                            notes: originalRow ? originalRow.notes : cells[10].textContent.trim(),
+                            created: cells[11].textContent.trim(),
+                            originalRow: row.cloneNode(true)
+                        });
+                    }
+                }
             });
+            
+            filteredData = [...allTableData];
+            
+            // Only update table if we have data
+            if (allTableData.length > 0) {
+                updateTable();
+            }
+            
+            // Add event listeners
+            const searchInput = document.getElementById('searchInput');
+            const statusFilter = document.getElementById('statusFilter');
+            const installerFilter = document.getElementById('installerFilter');
+            const serviceFilter = document.getElementById('serviceFilter');
+            const rowsPerPageSelect = document.getElementById('rowsPerPage');
+            
+            if (searchInput) searchInput.addEventListener('input', filterTable);
+            if (statusFilter) statusFilter.addEventListener('change', filterTable);
+            if (installerFilter) installerFilter.addEventListener('change', filterTable);
+            if (serviceFilter) serviceFilter.addEventListener('change', filterTable);
+            if (rowsPerPageSelect) {
+                rowsPerPageSelect.addEventListener('change', function() {
+                    rowsPerPage = parseInt(this.value);
+                    currentPage = 1;
+                    updateTable();
+                });
+            }
+        }
+
+        function filterTable() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const installerFilter = document.getElementById('installerFilter').value;
+            const serviceFilter = document.getElementById('serviceFilter').value;
+            
+            filteredData = allTableData.filter(row => {
+                const matchesSearch = !searchTerm || 
+                    row.customer.toLowerCase().includes(searchTerm) ||
+                    row.installer.toLowerCase().includes(searchTerm) ||
+                    row.address.toLowerCase().includes(searchTerm) ||
+                    row.products.toLowerCase().includes(searchTerm) ||
+                    row.notes.toLowerCase().includes(searchTerm);
+                
+                const matchesStatus = !statusFilter || row.status.includes(statusFilter);
+                const matchesInstaller = !installerFilter || row.installer === installerFilter;
+                const matchesService = !serviceFilter || row.serviceType === serviceFilter;
+                
+                return matchesSearch && matchesStatus && matchesInstaller && matchesService;
+            });
+            
+            currentPage = 1;
+            updateTable();
+        }
+
+        function sortTable(columnIndex) {
+            if (sortColumn === columnIndex) {
+                sortDirection = sortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                sortColumn = columnIndex;
+                sortDirection = 'asc';
+            }
+            
+            const columnNames = ['id', 'installer', 'customer', 'contact', 'address', 'scheduleDate', 'time', 'serviceType', 'status', 'products', 'notes', 'created'];
+            const columnName = columnNames[columnIndex];
+            
+            filteredData.sort((a, b) => {
+                let aVal = a[columnName];
+                let bVal = b[columnName];
+                
+                // Handle numeric sorting for ID
+                if (columnName === 'id') {
+                    aVal = parseInt(aVal);
+                    bVal = parseInt(bVal);
+                }
+                
+                if (sortDirection === 'asc') {
+                    return aVal > bVal ? 1 : -1;
+                } else {
+                    return aVal < bVal ? 1 : -1;
+                }
+            });
+            
+            updateTable();
+            updateSortIcons();
+        }
+
+        function updateSortIcons() {
+            const headers = document.querySelectorAll('#detailedTable th');
+            headers.forEach((header, index) => {
+                const icon = header.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-sort';
+                    if (index === sortColumn) {
+                        icon.className = sortDirection === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    }
+                }
+            });
+        }
+
+        function updateTable() {
+            const startIndex = (currentPage - 1) * rowsPerPage;
+            const endIndex = startIndex + rowsPerPage;
+            const pageData = filteredData.slice(startIndex, endIndex);
+            
+            const tableBody = document.getElementById('detailedTableBody');
+            tableBody.innerHTML = '';
+            
+            if (pageData.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="12" class="text-center">No data found</td></tr>';
+            } else {
+                pageData.forEach(row => {
+                    tableBody.appendChild(row.originalRow.cloneNode(true));
+                });
+            }
+            
+            updatePagination();
+            updateRecordCounts();
+        }
+
+        function updatePagination() {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) return;
+            
+            // Previous button
+            const prevLi = document.createElement('li');
+            prevLi.className = `page-item ${currentPage === 1 ? 'disabled' : ''}`;
+            prevLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage - 1}); return false;">Previous</a>`;
+            pagination.appendChild(prevLi);
+            
+            // Page numbers
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, currentPage + 2);
+            
+            if (startPage > 1) {
+                const firstLi = document.createElement('li');
+                firstLi.className = 'page-item';
+                firstLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(1); return false;">1</a>`;
+                pagination.appendChild(firstLi);
+                
+                if (startPage > 2) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const li = document.createElement('li');
+                li.className = `page-item ${i === currentPage ? 'active' : ''}`;
+                li.innerHTML = `<a class="page-link" href="#" onclick="changePage(${i}); return false;">${i}</a>`;
+                pagination.appendChild(li);
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsisLi = document.createElement('li');
+                    ellipsisLi.className = 'page-item disabled';
+                    ellipsisLi.innerHTML = '<span class="page-link">...</span>';
+                    pagination.appendChild(ellipsisLi);
+                }
+                
+                const lastLi = document.createElement('li');
+                lastLi.className = 'page-item';
+                lastLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${totalPages}); return false;">${totalPages}</a>`;
+                pagination.appendChild(lastLi);
+            }
+            
+            // Next button
+            const nextLi = document.createElement('li');
+            nextLi.className = `page-item ${currentPage === totalPages ? 'disabled' : ''}`;
+            nextLi.innerHTML = `<a class="page-link" href="#" onclick="changePage(${currentPage + 1}); return false;">Next</a>`;
+            pagination.appendChild(nextLi);
+        }
+
+        function changePage(page) {
+            const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+            if (page >= 1 && page <= totalPages) {
+                currentPage = page;
+            updateTable();
+            }
+        }
+
+        function updateRecordCounts() {
+            const startIndex = (currentPage - 1) * rowsPerPage + 1;
+            const endIndex = Math.min(currentPage * rowsPerPage, filteredData.length);
+            
+            document.getElementById('showingStart').textContent = filteredData.length > 0 ? startIndex : 0;
+            document.getElementById('showingEnd').textContent = endIndex;
+            document.getElementById('totalFiltered').textContent = filteredData.length;
+            document.getElementById('totalRecords').textContent = allTableData.length;
+        }
+
+        // Sorting functions for other tables
+        function sortInstallerTable(columnIndex) {
+            sortGenericTable('installerTable', columnIndex);
+        }
+
+        function sortServiceTable(columnIndex) {
+            sortGenericTable('serviceTable', columnIndex);
+        }
+
+        function sortGenericTable(tableId, columnIndex) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            
+            // Skip if no data
+            if (rows.length === 0 || rows[0].cells.length <= 1) return;
+            
+            // Determine sort direction
+            const currentDirection = table.getAttribute('data-sort-direction') || 'asc';
+            const currentColumn = parseInt(table.getAttribute('data-sort-column') || -1);
+            
+            let direction = 'asc';
+            if (currentColumn === columnIndex) {
+                direction = currentDirection === 'asc' ? 'desc' : 'asc';
+            }
+            
+            table.setAttribute('data-sort-column', columnIndex);
+            table.setAttribute('data-sort-direction', direction);
+            
+            // Sort rows
+            rows.sort((a, b) => {
+                let aVal = a.cells[columnIndex].textContent.trim();
+                let bVal = b.cells[columnIndex].textContent.trim();
+                
+                // Remove % sign for percentage comparisons
+                if (aVal.includes('%')) {
+                    aVal = parseFloat(aVal.replace('%', ''));
+                    bVal = parseFloat(bVal.replace('%', ''));
+                }
+                // Try to parse as number
+                else if (!isNaN(aVal) && !isNaN(bVal)) {
+                    aVal = parseFloat(aVal);
+                    bVal = parseFloat(bVal);
+                }
+                
+                if (direction === 'asc') {
+                    return aVal > bVal ? 1 : aVal < bVal ? -1 : 0;
+                } else {
+                    return aVal < bVal ? 1 : aVal > bVal ? -1 : 0;
+                }
+            });
+            
+            // Re-append sorted rows
+            rows.forEach(row => tbody.appendChild(row));
+            
+            // Update sort icons
+            const headers = table.querySelectorAll('th');
+            headers.forEach((header, index) => {
+                const icon = header.querySelector('i');
+                if (icon) {
+                    icon.className = 'fas fa-sort';
+                    if (index === columnIndex) {
+                        icon.className = direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
+                    }
+                }
+            });
+        }
+
+        // Chart.js data and initialization
+        const chartLabels = <?php echo json_encode(array_map(function($item) { return date('M j', strtotime($item['install_date'])); }, $chart_data)); ?>;
+        const chartData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_schedules'))); ?>;
+        const completedData = <?php echo json_encode(array_map('intval', array_column($chart_data, 'daily_completed'))); ?>;
+        const serviceLabels = <?php echo json_encode(array_column($service_data, 'service_type')); ?>;
+        const serviceData = <?php echo json_encode(array_map('intval', array_column($service_data, 'total_count'))); ?>;
+
+        const trendCtx = document.getElementById('installTrendChart').getContext('2d');
+        const trendChart = new Chart(trendCtx, {
+            type: 'line',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Total Schedules',
+                    data: chartData,
+                    borderColor: 'rgb(75, 192, 192)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }, {
+                    label: 'Completed',
+                    data: completedData,
+                    borderColor: 'rgb(40, 167, 69)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.1,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + context.parsed.y;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        const serviceCtx = document.getElementById('serviceChart').getContext('2d');
+        const serviceChart = new Chart(serviceCtx, {
+            type: 'doughnut',
+            data: {
+                labels: serviceLabels,
+                datasets: [{
+                    data: serviceData,
+                    backgroundColor: ['#FF6384','#36A2EB','#FFCE56','#4BC0C0','#9966FF','#FF9F40','#C9CBCF']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.label + ': ' + context.parsed;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Tab persistence functions
+        function saveActiveTab(tabId) {
+            localStorage.setItem('installReportActiveTab', tabId);
+        }
+
+        function getActiveTab() {
+            return localStorage.getItem('installReportActiveTab') || 'summary';
+        }
+
+        function restoreActiveTab() {
+            const activeTabId = getActiveTab();
+            const tabButton = document.getElementById(activeTabId + '-tab');
+            const tabPane = document.getElementById(activeTabId);
+            
+            if (tabButton && tabPane) {
+                // Remove active class from all tabs
+                document.querySelectorAll('.nav-link').forEach(link => {
+                    link.classList.remove('active');
+                    link.setAttribute('aria-selected', 'false');
+                });
+                
+                document.querySelectorAll('.tab-pane').forEach(pane => {
+                    pane.classList.remove('show', 'active');
+                });
+                
+                // Activate the saved tab
+                tabButton.classList.add('active');
+                tabButton.setAttribute('aria-selected', 'true');
+                tabPane.classList.add('show', 'active');
+            }
+        }
+
+        // Initialize all sections as printable
+        document.addEventListener('DOMContentLoaded', function() {
+            // Restore active tab first
+            restoreActiveTab();
+            
+            // Add click listeners to all tab buttons
+            document.querySelectorAll('.nav-link[data-bs-toggle="tab"]').forEach(link => {
+                link.addEventListener('click', function() {
+                    const tabId = this.getAttribute('data-bs-target').replace('#', '');
+                    saveActiveTab(tabId);
+                });
+            });
+            
+            
             
             // Initialize detailed table functionality
             initializeDetailedTable();
