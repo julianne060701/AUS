@@ -87,978 +87,7 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
     <link href="../css/sb-admin-2.min.css" rel="stylesheet">
     <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap4.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://code.jquery.com/ui/1.12.1/themes/ui-lightness/jquery-ui.css">
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-        }
-
-        #content-wrapper {
-            background: transparent;
-        }
-
-        .container-fluid {
-            padding: 20px;
-        }
-
-        /* Dashboard Header */
-        .dashboard-header {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            margin-bottom: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(59, 130, 246, 0.1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .dashboard-header::before {
-            content: '';
-            position: absolute;
-            top: -50%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: 
-                radial-gradient(circle at 30% 30%, rgba(59, 130, 246, 0.05) 0%, transparent 40%),
-                radial-gradient(circle at 70% 70%, rgba(139, 92, 246, 0.05) 0%, transparent 40%);
-            animation: float 20s ease-in-out infinite;
-            pointer-events: none;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            50% { transform: translate(20px, 20px) rotate(5deg); }
-        }
-
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 24px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .header-title h1 {
-            font-size: 32px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 50%, #ec4899 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            margin-bottom: 8px;
-            animation: shimmer 3s ease-in-out infinite;
-        }
-
-        @keyframes shimmer {
-            0%, 100% { filter: brightness(1); }
-            50% { filter: brightness(1.2); }
-        }
-
-        .header-subtitle {
-            color: #64748b;
-            font-size: 16px;
-            font-weight: 500;
-        }
-
-        .view-toggles {
-            display: flex;
-            gap: 4px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            padding: 6px;
-            border-radius: 20px;
-            box-shadow: 
-                0 4px 20px -5px rgba(0, 0, 0, 0.08),
-                0 0 0 1px rgba(59, 130, 246, 0.1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .view-toggles::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, rgba(59, 130, 246, 0.02) 0%, rgba(139, 92, 246, 0.02) 100%);
-            pointer-events: none;
-        }
-
-        .view-btn {
-            padding: 12px 24px;
-            border: none;
-            background: transparent;
-            color: #64748b;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 16px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            position: relative;
-            z-index: 2;
-            font-size: 14px;
-            min-width: 120px;
-            justify-content: center;
-        }
-
-        .view-btn i {
-            font-size: 16px;
-            transition: transform 0.3s ease;
-        }
-
-        .view-btn.active {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            box-shadow: 
-                0 4px 12px -2px rgba(59, 130, 246, 0.4),
-                0 0 0 1px rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
-        }
-
-        .view-btn.active i {
-            transform: scale(1.1);
-        }
-
-        .view-btn:hover:not(.active) {
-            background: rgba(59, 130, 246, 0.08);
-            color: #3b82f6;
-            transform: translateY(-1px);
-        }
-
-        .view-btn:hover:not(.active) i {
-            transform: scale(1.05);
-        }
-
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 24px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 20px;
-            padding: 28px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .stat-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--accent-color);
-            border-radius: 0 0 5px 0;
-        }
-
-        .stat-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: radial-gradient(circle at center, rgba(59, 130, 246, 0.02) 0%, transparent 70%);
-            opacity: 0;
-            transition: opacity 0.3s ease;
-            pointer-events: none;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px) scale(1.02);
-            box-shadow: 
-                0 25px 60px -10px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .stat-card:hover::after {
-            opacity: 1;
-        }
-
-        .stat-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: relative;
-            z-index: 2;
-        }
-
-        .stat-icon {
-            width: 64px;
-            height: 64px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.3);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover .stat-icon {
-            transform: scale(1.1);
-        }
-
-        .stat-value {
-            font-size: 40px;
-            font-weight: 800;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            line-height: 1;
-        }
-
-        .stat-label {
-            color: #64748b;
-            font-size: 14px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-top: 6px;
-        }
-
-        /* Filter Card */
-        .filter-card {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 32px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-        }
-
-        .filter-card label {
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 14px;
-        }
-
-        /* Calendar Container */
-        .calendar-container {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-        }
-
-        .calendar-nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .month-nav {
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .nav-btn {
-            padding: 12px 20px;
-            border: none;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-            border-radius: 16px;
-            cursor: pointer;
-            font-weight: 600;
-            color: #64748b;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            text-decoration: none;
-            display: inline-block;
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.1);
-        }
-
-        .nav-btn:hover {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            text-decoration: none;
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px -4px rgba(59, 130, 246, 0.4);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .month-title {
-            font-size: 24px;
-            font-weight: 700;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            min-width: 200px;
-            text-align: center;
-        }
-
-        .calendar-grid {
-            display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 12px;
-        }
-
-        .day-header {
-            text-align: center;
-            padding: 16px 12px;
-            font-weight: 700;
-            color: #2d3748;
-            font-size: 14px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .calendar-day {
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 12px;
-            min-height: 140px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            position: relative;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .calendar-day.empty-day {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            cursor: default;
-            opacity: 0.3;
-        }
-
-        .calendar-day.empty-day:hover {
-            transform: none;
-            box-shadow: none;
-            background: #f8fafc;
-        }
-
-        .calendar-day:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-            background: #f8fafc;
-            border-color: #cbd5e0;
-        }
-
-        .day-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .day-number {
-            font-weight: 700;
-            color: #2d3748;
-            font-size: 18px;
-            line-height: 1;
-        }
-
-        .day-name {
-            font-weight: 500;
-            color: #718096;
-            font-size: 12px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .calendar-day.today {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-color: #5a67d8;
-        }
-
-        .calendar-day.today .day-number {
-            color: white;
-        }
-
-        .calendar-day.today .day-name {
-            color: rgba(255, 255, 255, 0.8);
-        }
-
-        .calendar-day.today .day-info {
-            border-bottom-color: rgba(255, 255, 255, 0.2);
-        }
-
-        .calendar-day.today:hover {
-            background: linear-gradient(135deg, #5568d3 0%, #6b3f8f 100%);
-        }
-
-        .schedule-mini {
-            background: white;
-            border-radius: 6px;
-            padding: 6px 8px;
-            font-size: 11px;
-            margin-bottom: 4px;
-            border-left: 3px solid;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            transition: all 0.2s ease;
-        }
-
-        .schedule-mini:hover {
-            transform: translateX(2px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-
-        .schedule-count {
-            background: #e2e8f0;
-            color: #4a5568;
-            border-radius: 12px;
-            padding: 4px 8px;
-            font-size: 10px;
-            font-weight: 600;
-            text-align: center;
-            margin-top: auto;
-            align-self: center;
-        }
-
-        .calendar-day.today .schedule-count {
-            background: rgba(255,255,255,0.3);
-            color: white;
-        }
-
-        /* Modern Card Grid Layout */
-        .kanban-container {
-            display: none;
-            grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-            gap: 24px;
-            padding: 24px 0;
-        }
-
-        .kanban-column {
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 28px;
-            box-shadow: 
-                0 10px 40px -10px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kanban-column::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: var(--accent-color);
-            border-radius: 24px 24px 0 0;
-        }
-
-        .kanban-column:hover {
-            transform: translateY(-8px);
-            box-shadow: 
-                0 25px 60px -10px rgba(0, 0, 0, 0.15),
-                0 0 0 1px rgba(59, 130, 246, 0.2);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .column-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid rgba(226, 232, 240, 0.5);
-            position: relative;
-        }
-
-        .column-title {
-            font-weight: 700;
-            font-size: 18px;
-            color: #1e293b;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .column-title i {
-            font-size: 20px;
-            color: var(--accent-color);
-        }
-
-        .column-count {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            border-radius: 20px;
-            padding: 6px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 13px;
-            font-weight: 700;
-            box-shadow: 0 4px 12px -2px rgba(59, 130, 246, 0.4);
-        }
-
-        .kanban-cards {
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
-            min-height: 200px;
-        }
-
-        .kanban-card {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 16px;
-            padding: 20px;
-            cursor: move;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .kanban-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 4px;
-            height: 100%;
-            background: var(--accent-color);
-            border-radius: 0 0 4px 0;
-        }
-
-        .kanban-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .kanban-card.dragging {
-            opacity: 0.5;
-            transform: rotate(5deg);
-        }
-
-        .card-title {
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 16px;
-            line-height: 1.4;
-        }
-
-        .card-detail {
-            color: #64748b;
-            font-size: 14px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-weight: 500;
-        }
-
-        .card-detail i {
-            color: var(--accent-color);
-            width: 16px;
-        }
-
-        .installer-badge {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 16px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-flex;
-            align-items: center;
-            box-shadow: 0 2px 8px -2px rgba(59, 130, 246, 0.4);
-            gap: 4px;
-            margin-top: 8px;
-        }
-
-        .card-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .action-btn {
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.3s ease;
-        }
-
-        .btn-primary {
-            background: #667eea;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5568d3;
-            transform: translateY(-1px);
-        }
-
-        .btn-secondary {
-            background: #e2e8f0;
-            color: #4a5568;
-        }
-
-        .btn-secondary:hover {
-            background: #cbd5e0;
-        }
-
-        /* Modern List View */
-        .list-container {
-            display: none;
-            background: linear-gradient(135deg, #ffffff 0%, #fafbfc 100%);
-            border-radius: 24px;
-            padding: 32px;
-            box-shadow: 
-                0 20px 60px -12px rgba(0, 0, 0, 0.1),
-                0 0 0 1px rgba(59, 130, 246, 0.08);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-        }
-
-        .list-group {
-            margin-bottom: 32px;
-        }
-
-        .list-date {
-            font-weight: 700;
-            color: #1e293b;
-            font-size: 20px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 3px solid rgba(59, 130, 246, 0.2);
-            display: flex;
-            align-items: center;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            gap: 8px;
-        }
-
-        .list-item {
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 20px;
-            padding: 24px;
-            margin-bottom: 16px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid rgba(59, 130, 246, 0.1);
-            box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.08);
-            position: relative;
-            overflow: hidden;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
-
-        .list-item::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 5px;
-            height: 100%;
-            background: var(--accent-color);
-            border-radius: 0 0 5px 0;
-        }
-
-        .list-item:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
-            border-color: rgba(59, 130, 246, 0.3);
-        }
-
-        .list-info {
-            flex: 1;
-            min-width: 300px;
-            position: relative;
-            z-index: 2;
-        }
-
-        .list-customer {
-            font-weight: 700;
-            color: #1e293b;
-            margin-bottom: 12px;
-            font-size: 18px;
-            line-height: 1.4;
-        }
-
-        .list-details {
-            display: flex;
-            gap: 16px;
-            flex-wrap: wrap;
-        }
-
-        .list-detail {
-            color: #4a5568;
-            font-size: 13px;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .view-content > div {
-            animation: fadeIn 0.5s ease;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: #718096;
-        }
-
-        .empty-state i {
-            font-size: 64px;
-            margin-bottom: 16px;
-            opacity: 0.3;
-        }
-
-        .empty-state p {
-            font-size: 16px;
-            margin-bottom: 8px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .calendar-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .stats-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .header-content {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .view-toggles {
-                width: 100%;
-                padding: 4px;
-            }
-
-            .view-btn {
-                flex: 1;
-                justify-content: center;
-                padding: 10px 16px;
-                font-size: 13px;
-                min-width: auto;
-            }
-
-            .view-btn i {
-                font-size: 14px;
-            }
-
-            .calendar-day {
-                min-height: 100px;
-            }
-
-            .list-item {
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 20px;
-            }
-
-            .list-info {
-                min-width: 100%;
-                margin-bottom: 16px;
-            }
-
-            .card-actions {
-                width: 100%;
-            }
-
-            .kanban-container {
-                grid-template-columns: 1fr;
-                gap: 16px;
-                padding: 16px 0;
-            }
-
-            .kanban-column {
-                min-width: 100%;
-                padding: 20px;
-            }
-
-            .kanban-card {
-                padding: 16px;
-            }
-        }
-
-        /* Modal Enhancements */
-        .modal-content {
-            border-radius: 16px;
-            border: none;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 16px 16px 0 0;
-            padding: 20px 24px;
-        }
-
-        .modal-header .close {
-            color: white;
-            opacity: 0.8;
-        }
-
-        .modal-header .close:hover {
-            opacity: 1;
-        }
-
-        .modal-title {
-            font-weight: 600;
-        }
-
-        .modal-body {
-            padding: 24px;
-        }
-
-        .modal-footer {
-            padding: 16px 24px;
-            border-top: 2px solid #e2e8f0;
-        }
-
-        /* Form Enhancements */
-        .form-control:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-
-        .form-group label {
-            font-weight: 500;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        /* Completion Image Styles */
-        .completion-thumbnail {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 8px;
-            cursor: pointer;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .completion-thumbnail:hover {
-            border-color: #48bb78;
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
-        }
-
-        .completion-thumbnail-large {
-            width: 120px;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 12px;
-            cursor: pointer;
-            border: 3px solid #e2e8f0;
-            transition: all 0.3s ease;
-        }
-
-        .completion-thumbnail-large:hover {
-            border-color: #48bb78;
-            transform: scale(1.05);
-            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.3);
-        }
-
-        .completion-image-preview {
-            text-align: center;
-        }
-
-        .completed-card-container {
-            margin-bottom: 1rem;
-        }
-
-        .completed-card-container .card {
-            transition: all 0.3s ease;
-        }
-
-        .completed-card-container .card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
-        }
-
-        /* Completion Image Modal */
-        .completion-image-modal .modal-dialog {
-            max-width: 800px;
-        }
-
-        .completion-image-modal .modal-body {
-            text-align: center;
-            padding: 2rem;
-        }
-
-        .completion-image-modal .modal-body img {
-            max-width: 100%;
-            max-height: 70vh;
-            border-radius: 12px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-        }
-    </style>
+    <link rel="stylesheet" href="includes/installer_schedule.css">
 </head>
 <body id="page-top">
 <div id="wrapper">
@@ -1315,6 +344,20 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                         echo '<div class="card-detail"><i class="fas fa-calendar"></i> ' . date('M d, Y', strtotime($schedule['schedule_date'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                        $serviceType = $schedule['service_type'];
+                                        $productLabel = 'Products to Install';
+                                        if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                        elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                        
+                                        $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                        echo '<div class="card-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
+                                        $serviceType = $schedule['service_type'];
+                                        $productLabel = 'Products to Install';
+                                        if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                        elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                        
+                                        $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                        echo '<div class="card-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
                                         echo '<div class="card-actions">';
                                         echo '<button class="action-btn btn-primary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Assign</button>';
                                         echo '<button class="action-btn btn-secondary edit-schedule-btn" data-schedule-id="' . $schedule['id'] . '">Edit</button>';
@@ -1348,6 +391,13 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                         echo '<div class="card-detail"><i class="fas fa-calendar"></i> ' . date('M d, Y', strtotime($schedule['schedule_date'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                        $serviceType = $schedule['service_type'];
+                                        $productLabel = 'Products to Install';
+                                        if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                        elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                        
+                                        $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                        echo '<div class="card-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
                                         echo '<div class="installer-badge"><i class="fas fa-user"></i> ' . htmlspecialchars($schedule['installer_name']) . '</div>';
                                         echo '<div class="card-actions">';
                                         echo '<button class="action-btn btn-primary">Start</button>';
@@ -1383,6 +433,13 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                         echo '<div class="card-detail"><i class="fas fa-calendar"></i> ' . date('M d, Y', strtotime($schedule['schedule_date'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                        $serviceType = $schedule['service_type'];
+                                        $productLabel = 'Products to Install';
+                                        if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                        elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                        
+                                        $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                        echo '<div class="card-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
                                         echo '<div class="installer-badge"><i class="fas fa-user"></i> ' . htmlspecialchars($schedule['installer_name']) . '</div>';
                                         echo '<div class="card-actions">';
                                         echo '<button class="action-btn btn-primary">Complete</button>';
@@ -1418,6 +475,13 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                         echo '<div class="card-detail"><i class="fas fa-calendar"></i> ' . date('M d, Y', strtotime($schedule['schedule_date'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                         echo '<div class="card-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                        $serviceType = $schedule['service_type'];
+                                        $productLabel = 'Products to Install';
+                                        if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                        elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                        
+                                        $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                        echo '<div class="card-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
                                         echo '<div class="installer-badge"><i class="fas fa-user"></i> ' . htmlspecialchars($schedule['installer_name']) . '</div>';
                                         
                                         // Show completion image if available
@@ -1484,9 +548,16 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     echo '<h5 class="card-title text-primary">' . htmlspecialchars($schedule['customer_name']) . '</h5>';
                                     echo '<div class="row">';
                                     echo '<div class="col-md-6">';
-                                    echo '<p class="mb-1"><i class="fas fa-clock text-muted"></i> Scheduled: ' . date('M d, Y h:i A', strtotime($schedule['schedule_date'] . ' ' . $schedule['schedule_time'])) . '</p>';
-                                    echo '<p class="mb-1"><i class="fas fa-cog text-muted"></i> ' . htmlspecialchars($schedule['service_type']) . '</p>';
-                                    echo '<p class="mb-1"><i class="fas fa-user text-muted"></i> ' . htmlspecialchars($schedule['installer_name']) . '</p>';
+                                            echo '<p class="mb-1"><i class="fas fa-clock text-muted"></i> Scheduled: ' . date('M d, Y h:i A', strtotime($schedule['schedule_date'] . ' ' . $schedule['schedule_time'])) . '</p>';
+                                            echo '<p class="mb-1"><i class="fas fa-cog text-muted"></i> ' . htmlspecialchars($schedule['service_type']) . '</p>';
+                                            $serviceType = $schedule['service_type'];
+                                            $productLabel = 'Products to Install';
+                                            if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                            elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                            
+                                            $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                            echo '<p class="mb-1"><i class="fas fa-box text-muted"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</p>';
+                                            echo '<p class="mb-1"><i class="fas fa-user text-muted"></i> ' . htmlspecialchars($schedule['installer_name']) . '</p>';
                                     echo '</div>';
                                     echo '<div class="col-md-6">';
                                     echo '<p class="mb-1"><i class="fas fa-map-marker-alt text-muted"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 50)) . '...</p>';
@@ -1580,6 +651,13 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             echo '<div class="col-md-6">';
                                             echo '<p class="mb-1"><i class="fas fa-clock text-muted"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</p>';
                                             echo '<p class="mb-1"><i class="fas fa-cog text-muted"></i> ' . htmlspecialchars($schedule['service_type']) . '</p>';
+                                            $serviceType = $schedule['service_type'];
+                                            $productLabel = 'Products to Install';
+                                            if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                            elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                            
+                                            $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                            echo '<p class="mb-1"><i class="fas fa-box text-muted"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</p>';
                                             echo '<p class="mb-1"><i class="fas fa-user text-muted"></i> ' . htmlspecialchars($schedule['installer_name']) . '</p>';
                                             echo '</div>';
                                             echo '<div class="col-md-6">';
@@ -1609,6 +687,13 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                             echo '<div class="list-details">';
                                             echo '<div class="list-detail"><i class="fas fa-clock"></i> ' . date('h:i A', strtotime($schedule['schedule_time'])) . '</div>';
                                             echo '<div class="list-detail"><i class="fas fa-cog"></i> ' . htmlspecialchars($schedule['service_type']) . '</div>';
+                                            $serviceType = $schedule['service_type'];
+                                            $productLabel = 'Products to Install';
+                                            if ($serviceType == 'Repair') $productLabel = 'Products to Repair';
+                                            elseif ($serviceType == 'Maintenance') $productLabel = 'Products to Maintain';
+                                            
+                                            $quantityText = ($serviceType == 'Installation') ? ' (Qty: ' . ($schedule['quantity_to_install'] ?? 1) . ')' : '';
+                                            echo '<div class="list-detail"><i class="fas fa-box"></i> ' . $productLabel . ': ' . htmlspecialchars($schedule['products_to_install']) . $quantityText . '</div>';
                                             echo '<div class="list-detail"><i class="fas fa-user"></i> ' . (!empty($schedule['installer_name']) ? htmlspecialchars($schedule['installer_name']) : 'Unassigned') . '</div>';
                                             echo '<div class="list-detail"><i class="fas fa-map-marker-alt"></i> ' . htmlspecialchars(substr($schedule['address'], 0, 40)) . '...</div>';
                                             echo '<div class="list-detail"><i class="fas fa-info-circle"></i> ' . htmlspecialchars($schedule['status']) . '</div>';
@@ -1718,47 +803,66 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <option value="Installation">Installation</option>
                                     <option value="Repair">Repair</option>
                                     <option value="Maintenance">Maintenance</option>
-                                    <option value="Inspection">Inspection</option>
-                                    <option value="Other">Other</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="products_to_install">Products to Install *</label>
-                        <select class="form-control" id="products_to_install" name="products_to_install" required>
-                            <option value="">Select Product</option>
-                            <?php
-                            // Fetch products from database
-                            $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
-                                              FROM products p 
-                                              LEFT JOIN category c ON p.category_id = c.category_id 
-                                              LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                              WHERE p.quantity > 0 
-                                              ORDER BY p.product_name ASC";
-                            $products_result = mysqli_query($conn, $products_query);
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Dropdown for Installation service type -->
+                            <div class="form-group" id="products_dropdown_group">
+                                <label for="products_to_install_dropdown">Products to Install *</label>
+                                <select class="form-control" id="products_to_install_dropdown" name="products_to_install_dropdown">
+                                    <option value="">Select Product</option>
+                                    <?php
+                                    // Fetch products from database
+                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
+                                                      FROM products p 
+                                                      LEFT JOIN category c ON p.category_id = c.category_id 
+                                                      LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                                      WHERE p.quantity > 0 
+                                                      ORDER BY p.product_name ASC";
+                                    $products_result = mysqli_query($conn, $products_query);
+                                    
+                                    if ($products_result && mysqli_num_rows($products_result) > 0) {
+                                        while ($product = mysqli_fetch_assoc($products_result)) {
+                                            $product_display = $product['product_name'];
+                                            if (!empty($product['capacity'])) {
+                                                $product_display .= " ({$product['capacity']})";
+                                            }
+                                            if (!empty($product['brand_name'])) {
+                                                $product_display .= " - {$product['brand_name']}";
+                                            }
+                                            if (!empty($product['category_name'])) {
+                                                $product_display .= " [{$product['category_name']}]";
+                                            }
+                                            // Add quantity information
+                                            $product_display .= " - Qty Left: {$product['quantity']}";
+                                            echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                        }
+                                    } else {
+                                        echo "<option value=''>No products available</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <small class="form-text text-muted">Select the product to be installed</small>
+                            </div>
                             
-                            if ($products_result && mysqli_num_rows($products_result) > 0) {
-                                while ($product = mysqli_fetch_assoc($products_result)) {
-                                    $product_display = $product['product_name'];
-                                    if (!empty($product['capacity'])) {
-                                        $product_display .= " ({$product['capacity']})";
-                                    }
-                                    if (!empty($product['brand_name'])) {
-                                        $product_display .= " - {$product['brand_name']}";
-                                    }
-                                    if (!empty($product['category_name'])) {
-                                        $product_display .= " [{$product['category_name']}]";
-                                    }
-                                    echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
-                                }
-                            } else {
-                                echo "<option value=''>No products available</option>";
-                            }
-                            ?>
-                        </select>
-                        <small class="form-text text-muted">Select the product to be installed</small>
+                            <!-- Text input for other service types -->
+                            <div class="form-group" id="products_text_group" style="display: none;">
+                                <label for="products_to_install_text">Products to Install *</label>
+                                <input type="text" class="form-control" id="products_to_install_text" name="products_to_install_text" placeholder="Enter product name">
+                                <small class="form-text text-muted">Type the product name</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="quantity_to_install">Quantity *</label>
+                                <input type="number" class="form-control" id="quantity_to_install" name="quantity_to_install" min="1" max="100" value="1" required>
+                                <small class="form-text text-muted">How many to install</small>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -1848,8 +952,6 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                     <option value="Installation">Installation</option>
                                     <option value="Repair">Repair</option>
                                     <option value="Maintenance">Maintenance</option>
-                                    <option value="Inspection">Inspection</option>
-                                    <option value="Other">Other</option>
                                 </select>
                             </div>
                         </div>
@@ -1886,40 +988,61 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="edit_products_to_install">Products to Install *</label>
-                        <select class="form-control" id="edit_products_to_install" name="products_to_install" required>
-                            <option value="">Select Product</option>
-                            <?php
-                            // Fetch products from database
-                            $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
-                                              FROM products p 
-                                              LEFT JOIN category c ON p.category_id = c.category_id 
-                                              LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                              WHERE p.quantity > 0 
-                                              ORDER BY p.product_name ASC";
-                            $products_result = mysqli_query($conn, $products_query);
+                    <div class="row">
+                        <div class="col-md-8">
+                            <!-- Dropdown for Installation service type -->
+                            <div class="form-group" id="edit_products_dropdown_group">
+                                <label for="edit_products_to_install_dropdown">Products to Install *</label>
+                                <select class="form-control" id="edit_products_to_install_dropdown" name="products_to_install_dropdown">
+                                    <option value="">Select Product</option>
+                                    <?php
+                                    // Fetch products from database
+                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
+                                                      FROM products p 
+                                                      LEFT JOIN category c ON p.category_id = c.category_id 
+                                                      LEFT JOIN brands b ON p.brand_id = b.brand_id 
+                                                      WHERE p.quantity > 0 
+                                                      ORDER BY p.product_name ASC";
+                                    $products_result = mysqli_query($conn, $products_query);
+                                    
+                                    if ($products_result && mysqli_num_rows($products_result) > 0) {
+                                        while ($product = mysqli_fetch_assoc($products_result)) {
+                                            $product_display = $product['product_name'];
+                                            if (!empty($product['capacity'])) {
+                                                $product_display .= " ({$product['capacity']})";
+                                            }
+                                            if (!empty($product['brand_name'])) {
+                                                $product_display .= " - {$product['brand_name']}";
+                                            }
+                                            if (!empty($product['category_name'])) {
+                                                $product_display .= " [{$product['category_name']}]";
+                                            }
+                                            // Add quantity information
+                                            $product_display .= " - Qty Left: {$product['quantity']}";
+                                            echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
+                                        }
+                                    } else {
+                                        echo "<option value=''>No products available</option>";
+                                    }
+                                    ?>
+                                </select>
+                                <small class="form-text text-muted">Select the product to be installed</small>
+                            </div>
                             
-                            if ($products_result && mysqli_num_rows($products_result) > 0) {
-                                while ($product = mysqli_fetch_assoc($products_result)) {
-                                    $product_display = $product['product_name'];
-                                    if (!empty($product['capacity'])) {
-                                        $product_display .= " ({$product['capacity']})";
-                                    }
-                                    if (!empty($product['brand_name'])) {
-                                        $product_display .= " - {$product['brand_name']}";
-                                    }
-                                    if (!empty($product['category_name'])) {
-                                        $product_display .= " [{$product['category_name']}]";
-                                    }
-                                    echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
-                                }
-                            } else {
-                                echo "<option value=''>No products available</option>";
-                            }
-                            ?>
-                        </select>
-                        <small class="form-text text-muted">Select the product to be installed</small>
+                            <!-- Text input for other service types -->
+                            <div class="form-group" id="edit_products_text_group" style="display: none;">
+                                <label for="edit_products_to_install_text">Products to Install *</label>
+                                <input type="text" class="form-control" id="edit_products_to_install_text" name="products_to_install_text" placeholder="Enter product name">
+                                <small class="form-text text-muted">Type the product name</small>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="edit_quantity_to_install">Quantity *</label>
+                                <input type="number" class="form-control" id="edit_quantity_to_install" name="quantity_to_install" min="1" max="100" value="1" required>
+                                <small class="form-text text-muted">How many to install</small>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -1972,262 +1095,35 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
 <script src="../js/sb-admin-2.min.js"></script>
 <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js"></script>
 
+<script src="includes/installer_schedule.js"></script>
+
 <script>
+// Hide quantity field when service type is not Installation
 $(document).ready(function() {
-    // Ensure completed filter is hidden on initial load
-    $('#completed-filter-card').hide();
-
-    // View Toggle Functionality
-    $('.view-btn').click(function() {
-        $('.view-btn').removeClass('active');
-        $(this).addClass('active');
+    // Function to toggle quantity field visibility
+    function toggleQuantityField(serviceType, isEdit = false) {
+        const quantityField = isEdit ? $('#edit_quantity_to_install').closest('.form-group') : $('#quantity_to_install').closest('.form-group');
         
-        $('#calendar-view, #kanban-view, #list-view').hide();
-        
-        const view = $(this).data('view');
-        if (view === 'calendar') {
-            $('#calendar-view').show();
-            $('.stats-grid').show();
-            $('.filter-card').show();
-            $('#completed-filter-card').hide();
-        } else if (view === 'kanban') {
-            $('#kanban-view').css('display', 'flex').show();
-            $('.stats-grid').show();
-            $('.filter-card').show();
-            $('#completed-filter-card').hide();
-        } else if (view === 'list') {
-            $('#list-view').show();
-            $('.stats-grid').hide();
-            $('.filter-card').hide();
-            $('#completed-filter-card').show();
+        if (serviceType === 'Installation') {
+            quantityField.show();
+        } else {
+            quantityField.hide();
         }
-    });
-
-    // Calendar day click handler
-    $('.calendar-day').click(function() {
-        const selectedDate = $(this).data('date');
-        $('#selected_date').val(selectedDate);
-        $('#assignmentModal').modal('show');
-    });
-
-    // Handle assignment form submission
-    $('#assignmentForm').submit(function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: 'process_assignment.php',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#assignmentModal').modal('hide');
-                    showNotification('Schedule assigned successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showNotification('Error: ' + response.message, 'error');
-                }
-            },
-            error: function() {
-                showNotification('An error occurred while processing the assignment.', 'error');
-            }
-        });
-    });
-
-    // Handle edit schedule button clicks
-    $(document).on('click', '.edit-schedule-btn', function(e) {
-        e.stopPropagation();
-        const scheduleId = $(this).data('schedule-id');
-        
-        $.ajax({
-            url: 'get_schedule_data.php',
-            type: 'GET',
-            data: { id: scheduleId },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#edit_schedule_id').val(response.data.id);
-                    $('#edit_installer_name').val(response.data.installer_name);
-                    $('#edit_customer_name').val(response.data.customer_name);
-                    $('#edit_contact_number').val(response.data.contact_number);
-                    $('#edit_address').val(response.data.address);
-                    $('#edit_schedule_date').val(response.data.schedule_date);
-                    $('#edit_schedule_time').val(response.data.schedule_time);
-                    $('#edit_service_type').val(response.data.service_type);
-                    $('#edit_products_to_install').val(response.data.products_to_install);
-                    $('#edit_notes').val(response.data.notes);
-                    $('#edit_status').val(response.data.status);
-                    
-                    // Handle completion image and date
-                    if (response.data.status === 'Completed' && response.data.completion_image) {
-                        $('#edit_completion_image').attr('src', '../' + response.data.completion_image);
-                        $('#completion_image_section').show();
-                    } else {
-                        $('#completion_image_section').hide();
-                    }
-                    
-                    // Handle employee list
-                    if (response.data.status === 'Completed' && response.data.employee_list) {
-                        const employees = response.data.employee_list.split(/[,\n\r]+/);
-                        let employeeBadges = '';
-                        employees.forEach(function(employee) {
-                            employee = employee.trim();
-                            if (employee) {
-                                employeeBadges += '<span class="badge badge-secondary mr-1 mb-1">' + employee + '</span>';
-                            }
-                        });
-                        $('#edit_employee_list').html(employeeBadges);
-                        $('#employee_list_section').show();
-                    } else {
-                        $('#employee_list_section').hide();
-                    }
-                    
-                    if (response.data.status === 'Completed' && response.data.completed_at) {
-                        $('#edit_completed_at').text(new Date(response.data.completed_at).toLocaleString());
-                        $('#completion_date_section').show();
-                    } else {
-                        $('#completion_date_section').hide();
-                    }
-                    
-                    $('#editScheduleModal').modal('show');
-                } else {
-                    showNotification('Error loading schedule data: ' + response.message, 'error');
-                }
-            },
-            error: function() {
-                showNotification('An error occurred while loading schedule data.', 'error');
-            }
-        });
-    });
-
-    // Function to view completion image
-    function viewCompletionImage(imagePath) {
-        $('#completionImageDisplay').attr('src', '../' + imagePath);
-        $('#completionImageModal').modal('show');
     }
-
-    // Function to view completion image from edit modal
-    function viewCompletionImageFromModal() {
-        const imageSrc = $('#edit_completion_image').attr('src');
-        $('#completionImageDisplay').attr('src', imageSrc);
-        $('#completionImageModal').modal('show');
-    }
-
-    // Handle edit form submission
-    $('#editScheduleForm').submit(function(e) {
-        e.preventDefault();
-        
-        $.ajax({
-            url: 'process_edit_schedule.php',
-            type: 'POST',
-            data: $(this).serialize(),
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    $('#editScheduleModal').modal('hide');
-                    showNotification('Schedule updated successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showNotification('Error: ' + response.message, 'error');
-                }
-            },
-            error: function() {
-                showNotification('An error occurred while updating the schedule.', 'error');
-            }
-        });
+    
+    // Handle service type change for add form
+    $('#service_type').on('change', function() {
+        toggleQuantityField($(this).val(), false);
     });
-
-    // Drag and Drop for Kanban Cards
-    $('.kanban-card').draggable({
-        helper: 'clone',
-        cursor: 'move',
-        revert: 'invalid',
-        opacity: 0.7,
-        start: function(event, ui) {
-            $(this).addClass('dragging');
-        },
-        stop: function(event, ui) {
-            $(this).removeClass('dragging');
-        }
+    
+    // Handle service type change for edit form
+    $('#edit_service_type').on('change', function() {
+        toggleQuantityField($(this).val(), true);
     });
-
-    $('.kanban-cards').droppable({
-        accept: '.kanban-card',
-        hoverClass: 'bg-light',
-        drop: function(event, ui) {
-            const scheduleId = ui.draggable.data('schedule-id');
-            const columnTitle = $(this).closest('.kanban-column').find('.column-title').text().trim();
-            
-            let statusValue = 'Scheduled';
-            if (columnTitle.includes('In Progress')) {
-                statusValue = 'In Progress';
-            } else if (columnTitle.includes('Completed')) {
-                statusValue = 'Completed';
-            } else if (columnTitle.includes('Unassigned')) {
-                statusValue = 'Scheduled';
-            }
-            
-            // Update status via AJAX
-            $.ajax({
-                url: 'update_schedule_status.php',
-                type: 'POST',
-                data: {
-                    schedule_id: scheduleId,
-                    status: statusValue
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.success) {
-                        showNotification('Status updated successfully!', 'success');
-                        setTimeout(() => location.reload(), 1000);
-                    } else {
-                        showNotification('Error: ' + response.message, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Error updating status.', 'error');
-                }
-            });
-        }
-    });
-
-    // Notification function
-    function showNotification(message, type) {
-        const bgColor = type === 'success' ? 
-            'linear-gradient(135deg, #48bb78 0%, #38a169 100%)' : 
-            'linear-gradient(135deg, #f56565 0%, #e53e3e 100%)';
-        
-        const icon = type === 'success' ? 
-            '<i class="fas fa-check-circle" style="margin-right: 8px;"></i>' : 
-            '<i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>';
-        
-        const notification = $('<div>')
-            .css({
-                position: 'fixed',
-                top: '20px',
-                right: '-400px',
-                background: bgColor,
-                color: 'white',
-                padding: '16px 24px',
-                borderRadius: '12px',
-                boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                zIndex: 9999,
-                display: 'flex',
-                alignItems: 'center',
-                fontSize: '14px',
-                fontWeight: '500'
-            })
-            .html(icon + message)
-            .appendTo('body');
-        
-        notification.animate({ right: '20px' }, 300);
-        
-        setTimeout(() => {
-            notification.animate({ right: '-400px' }, 300, function() {
-                $(this).remove();
-            });
-        }, 3000);
-    }
+    
+    // Initialize quantity field visibility on page load
+    toggleQuantityField($('#service_type').val(), false);
+    toggleQuantityField($('#edit_service_type').val(), true);
 });
 </script>
 

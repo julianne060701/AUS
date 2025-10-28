@@ -135,7 +135,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                         <option value="">Select Product</option>
                         <?php
                         // Fetch products from database
-                        $products_query = "SELECT p.id, p.product_name, p.capacity, c.category_name, b.brand_name 
+                        $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name 
                                           FROM products p 
                                           LEFT JOIN category c ON p.category_id = c.category_id 
                                           LEFT JOIN brands b ON p.brand_id = b.brand_id 
@@ -155,6 +155,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                 if (!empty($product['category_name'])) {
                                     $product_display .= " [{$product['category_name']}]";
                                 }
+                                // Add quantity information
+                                $product_display .= " - Qty Left: {$product['quantity']}";
                                 echo "<option value='" . htmlspecialchars($product_display) . "'>" . htmlspecialchars($product_display) . "</option>";
                             }
                         } else {

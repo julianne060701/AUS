@@ -31,7 +31,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $product_id = $_POST['product_id'];
     $quantity_input = (int)$_POST['quantity']; // Quantity of products to stock out
     $cashier = $_POST['cashier_name'];
-    $date_of_sale = date("Y-m-d H:i:s");
+    $date_of_sale = date("Y-m-d H:i:s"); // This will now use Philippine time
     
     // Step 1: Get current stock and product details from DB
     $stmt_fetch = $conn->prepare("SELECT product_name, quantity FROM products WHERE id = ?");
@@ -51,8 +51,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $conn->begin_transaction();
         try {
             // Step 2: Insert into sales table (simplified for stock out)
-            $insert_sale = $conn->prepare("INSERT INTO aircon_sales (aircon_model, quantity_sold, selling_price, total_amount, date_of_sale, cashier, payment_method) VALUES (?, ?, 0, 0, ?, ?, 'stock_out')");
-            $insert_sale->bind_param("siss", $product_name, $quantity_input, $date_of_sale, $cashier);
+            // Note: Using 'cash' as payment_method since 'stock_out' may not be in ENUM yet
+            // Stock out records are identified by selling_price = 0 and total_amount = 0
+            // Now includes product_id foreign key for proper relationship
+            $insert_sale = $conn->prepare("INSERT INTO aircon_sales (product_id, aircon_model, quantity_sold, selling_price, total_amount, date_of_sale, cashier, payment_method) VALUES (?, ?, ?, 0, 0, ?, ?, 'cash')");
+            $insert_sale->bind_param("isiss", $product_id, $product_name, $quantity_input, $date_of_sale, $cashier);
             
             if ($insert_sale->execute()) {
                 $sale_id = $conn->insert_id;

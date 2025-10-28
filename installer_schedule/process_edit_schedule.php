@@ -19,14 +19,15 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $schedule_time = mysqli_real_escape_string($conn, $_POST['schedule_time']);
     $service_type = mysqli_real_escape_string($conn, $_POST['service_type']);
     $products_to_install = mysqli_real_escape_string($conn, $_POST['products_to_install']);
+    $quantity_to_install = (int)$_POST['quantity_to_install'];
     $notes = mysqli_real_escape_string($conn, $_POST['notes']);
     $status = mysqli_real_escape_string($conn, $_POST['status']);
 
     // Validate required fields
     if (empty($installer_name) || empty($customer_name) || empty($contact_number) || 
         empty($address) || empty($schedule_date) || empty($schedule_time) || 
-        empty($service_type) || empty($products_to_install)) {
-        echo json_encode(['success' => false, 'message' => 'All required fields must be filled.']);
+        empty($service_type) || empty($products_to_install) || $quantity_to_install < 1) {
+        echo json_encode(['success' => false, 'message' => 'All required fields must be filled and quantity must be at least 1.']);
         exit();
     }
 
@@ -54,6 +55,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               schedule_time = '$schedule_time',
               service_type = '$service_type',
               products_to_install = '$products_to_install',
+              quantity_to_install = '$quantity_to_install',
               notes = '$notes',
               status = '$status'
               WHERE id = $schedule_id";
