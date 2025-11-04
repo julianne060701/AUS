@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 27, 2025 at 02:02 PM
+-- Generation Time: Oct 27, 2025 at 10:00 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -43,28 +43,33 @@ CREATE TABLE `aircon_inventory` (
 
 CREATE TABLE `aircon_sales` (
   `sale_id` int(11) NOT NULL,
+  `product_id` int(11) DEFAULT NULL COMMENT 'Foreign key reference to products table',
   `aircon_model` varchar(255) DEFAULT NULL,
   `quantity_sold` int(11) DEFAULT NULL,
   `selling_price` decimal(10,2) DEFAULT NULL,
   `total_amount` decimal(10,2) DEFAULT NULL,
   `date_of_sale` datetime DEFAULT NULL,
   `cashier` varchar(255) DEFAULT NULL,
-  `payment_method` enum('cash','installment') DEFAULT 'cash' COMMENT 'Payment method: cash or installment',
-  `installment_period` int(11) DEFAULT NULL COMMENT 'Installment period in months (6, 12, or 24)',
-  `interest_rate` decimal(5,2) DEFAULT NULL COMMENT 'Interest rate percentage (3, 5, or 7)',
-  `interest_amount` decimal(10,2) DEFAULT NULL COMMENT 'Total interest amount calculated',
-  `monthly_payment` decimal(10,2) DEFAULT NULL COMMENT 'Monthly payment amount for installment',
-  `original_price` decimal(10,2) DEFAULT NULL COMMENT 'Original price before interest or discount'
+  `payment_method` enum('cash','installment') DEFAULT 'cash',
+  `installment_period` int(11) DEFAULT NULL,
+  `interest_rate` decimal(5,2) DEFAULT NULL,
+  `interest_amount` decimal(10,2) DEFAULT NULL,
+  `monthly_payment` decimal(10,2) DEFAULT NULL,
+  `original_price` decimal(10,2) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `aircon_sales`
 --
 
-INSERT INTO `aircon_sales` (`sale_id`, `aircon_model`, `quantity_sold`, `selling_price`, `total_amount`, `date_of_sale`, `cashier`, `payment_method`, `installment_period`, `interest_rate`, `interest_amount`, `monthly_payment`, `original_price`) VALUES
-(1, 'Natalie Baker', 1, 500.00, 450.00, '2025-09-27 13:44:43', 'Admin', 'cash', NULL, NULL, NULL, NULL, 500.00),
-(2, 'Samsung 1', 1, 200.00, 206.00, '2025-09-27 13:45:05', 'Admin', 'installment', 6, 3.00, 6.00, 34.33, 200.00),
-(3, 'Samsung 1', 1, 200.00, 214.00, '2025-09-27 13:48:42', 'Admin', '', 24, 7.00, 14.00, 8.92, 200.00);
+INSERT INTO `aircon_sales` (`sale_id`, `product_id`, `aircon_model`, `quantity_sold`, `selling_price`, `total_amount`, `date_of_sale`, `cashier`, `payment_method`, `installment_period`, `interest_rate`, `interest_amount`, `monthly_payment`, `original_price`) VALUES
+(1, 5, 'Carrier Aura Inventer', 2, 20500.00, 36900.00, '2025-10-22 07:36:50', 'Admin', '', NULL, NULL, NULL, NULL, 41000.00),
+(2, 5, 'Carrier Aura Inventer', 2, 0.00, 0.00, '2025-10-23 06:57:35', 'Admin', '', NULL, NULL, NULL, NULL, NULL),
+(3, 6, 'Condura Inventer', 2, 0.00, 0.00, '2025-10-23 07:00:00', 'Admin', '', NULL, NULL, NULL, NULL, NULL),
+(4, 7, 'Condura Window Type', 2, 0.00, 0.00, '2025-10-23 08:30:28', 'Admin', '', NULL, NULL, NULL, NULL, NULL),
+(5, 7, 'Condura Window Type', 2, 0.00, 0.00, '2025-10-25 08:30:06', 'Admin', '', NULL, NULL, NULL, NULL, NULL),
+(6, 6, 'Condura Inventer', 3, 0.00, 0.00, '2025-10-27 07:07:45', 'Admin', 'cash', NULL, NULL, NULL, NULL, NULL),
+(7, 7, 'Condura Window Type', 5, 0.00, 0.00, '2025-10-27 14:10:28', 'Admin', 'cash', NULL, NULL, NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -83,10 +88,8 @@ CREATE TABLE `brands` (
 --
 
 INSERT INTO `brands` (`brand_id`, `brand_name`, `created_at`) VALUES
-(2, 'Samsung', '2025-08-18 07:40:56'),
-(3, 'Acers', '2025-08-18 07:41:51'),
-(4, 'Ferrers', '2025-08-18 11:27:01'),
-(5, 'Red', '2025-08-18 11:33:21');
+(1, 'Carrier', '2025-10-22 06:50:58'),
+(2, 'Condura', '2025-10-23 06:59:08');
 
 -- --------------------------------------------------------
 
@@ -105,7 +108,7 @@ CREATE TABLE `category` (
 --
 
 INSERT INTO `category` (`category_id`, `category_name`, `created_at`) VALUES
-(1, 'Premium', '2025-08-06 03:57:08'),
+(1, 'Premiums', '2025-08-06 03:57:08'),
 (2, 'Regular', '2025-08-06 03:57:08'),
 (3, 'Broken', '2025-08-06 03:57:08'),
 (4, 'Standard', '2025-08-06 04:19:54'),
@@ -116,12 +119,51 @@ INSERT INTO `category` (`category_id`, `category_name`, `created_at`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `installer_schedules`
+--
+
+CREATE TABLE `installer_schedules` (
+  `id` int(11) NOT NULL,
+  `installer_name` varchar(255) NOT NULL,
+  `customer_name` varchar(255) NOT NULL,
+  `contact_number` varchar(20) NOT NULL,
+  `address` text NOT NULL,
+  `schedule_date` date NOT NULL,
+  `schedule_time` time NOT NULL,
+  `service_type` varchar(100) NOT NULL,
+  `products_to_install` text DEFAULT NULL,
+  `quantity_to_install` int(11) DEFAULT 1,
+  `image_path` varchar(500) DEFAULT NULL,
+  `completion_image` varchar(255) DEFAULT NULL,
+  `employee_list` text DEFAULT NULL,
+  `completed_at` datetime DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `status` enum('Scheduled','In Progress','Completed','Cancelled') DEFAULT 'Scheduled',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `installer_schedules`
+--
+
+INSERT INTO `installer_schedules` (`id`, `installer_name`, `customer_name`, `contact_number`, `address`, `schedule_date`, `schedule_time`, `service_type`, `products_to_install`, `quantity_to_install`, `image_path`, `completion_image`, `employee_list`, `completed_at`, `notes`, `status`, `created_at`, `updated_at`) VALUES
+(1, 'Installer 1', 'Juan Dela Cruz', '09481128870', 'Gensantos Foundation College Inc. Brgy. West', '2025-10-24', '15:00:00', 'Installation', 'Carrier Aura Inventer', 1, NULL, 'uploads/completion_images/completion_1_1761118945.png', NULL, '2025-10-22 07:42:25', '', 'Completed', '2025-10-22 07:39:07', '2025-10-22 07:42:25'),
+(2, 'Installer 1', 'Sade Dennis', '+1 (605) 285-2158', 'Dolorum odio repudia', '2025-10-25', '14:51:00', 'Installation', 'Carrier Aura Inventer (2.5 HP) - Carrier [Split type wall-mounted]', 1, NULL, 'uploads/completion_images/completion_2_1761194215.png', 'red, green, blue', '2025-10-23 04:36:55', 'Delectus rerum accu', 'Completed', '2025-10-23 04:10:52', '2025-10-23 04:36:55'),
+(3, 'Installer 1', 'Fritzie Lynn Jadol', '0909090', 'Calumpang', '2025-10-26', '15:00:00', 'Installation', 'Carrier Aura Inventer (2.5 HP) - Carrier [Split type wall-mounted]', 1, NULL, 'uploads/completion_images/completion_3_1761202998.png', 'Juan Dela Cruz\r\nMarvie paradero', '2025-10-23 07:03:18', '', 'Completed', '2025-10-23 07:00:41', '2025-10-23 07:03:18'),
+(4, 'Installer 1', 'Juan Dela Cruz', '0808909', 'Calumpang', '2025-10-27', '04:32:00', 'Installation', 'Condura Window Type (2.0 HP) [Window Type]', 1, NULL, 'uploads/completion_images/completion_4_1761381230.png', 'r g b', '2025-10-25 08:33:50', '', 'Completed', '2025-10-25 08:33:19', '2025-10-25 08:33:50'),
+(5, 'Installer 1', 'Juan Dela Cruz', '000889', 'Calumpang', '2025-10-28', '15:39:00', 'Maintenance', 'Condura Window Type (2.0 HP) [Window Type]', 1, NULL, NULL, NULL, NULL, '', 'Scheduled', '2025-10-25 08:39:52', '2025-10-25 08:39:52');
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `products`
 --
 
 CREATE TABLE `products` (
   `id` int(11) NOT NULL,
   `product_name` varchar(150) NOT NULL,
+  `serial_number` varchar(100) DEFAULT NULL,
   `capacity` varchar(20) DEFAULT NULL,
   `buying_price` decimal(10,2) NOT NULL,
   `selling_price` decimal(10,2) NOT NULL,
@@ -136,14 +178,11 @@ CREATE TABLE `products` (
 -- Dumping data for table `products`
 --
 
-INSERT INTO `products` (`id`, `product_name`, `capacity`, `buying_price`, `selling_price`, `quantity`, `category_id`, `created_at`, `updated_at`, `brand_id`) VALUES
-(2, 'Carrier Split Type Inverter', '1.5HP', 25000.00, 28999.00, 7, 6, '2025-08-16 13:28:08', '2025-09-27 11:29:10', NULL),
-(4, 'LG Double Door Ref', '8 cu.ft', 18000.00, 20000.00, 3, 2, '2025-08-16 13:28:08', '2025-08-18 08:13:45', 3),
-(5, 'Samsung Top Load', '10kg', 15000.00, 16999.00, 0, 3, '2025-08-16 13:28:08', '2025-09-27 11:35:13', 2),
-(6, 'Samsung', '1.5', 30000.00, 32000.00, 4, 7, '2025-08-18 02:53:33', '2025-09-27 11:34:13', NULL),
-(7, 'Natalie Baker', '1.6', 300.00, 500.00, 18, 6, '2025-08-18 06:19:07', '2025-09-27 11:44:43', NULL),
-(8, 'Ulla Acevedo', 'Aut nemo est sit per', 429.00, 500.00, 13, 6, '2025-08-18 07:57:22', '2025-08-18 07:57:22', 2),
-(9, 'Samsung 1', '1.5', 150.00, 200.00, 16, 6, '2025-08-18 08:08:47', '2025-09-27 11:48:42', NULL);
+INSERT INTO `products` (`id`, `product_name`, `serial_number`, `capacity`, `buying_price`, `selling_price`, `quantity`, `category_id`, `created_at`, `updated_at`, `brand_id`) VALUES
+(5, 'Carrier Aura Inventer', 'SNred', '2.5 HP', 18500.00, 20500.00, 0, 7, '2025-10-22 07:32:09', '2025-10-23 08:12:04', 1),
+(6, 'Condura Inventer', '1463441', '2.0 HP', 20000.00, 20500.00, 25, 7, '2025-10-23 06:59:44', '2025-10-27 06:07:45', 2),
+(7, 'Condura Window Type', 'N10274FB19484', '2.0 HP', 15200.00, 17000.00, 21, 6, '2025-10-23 08:30:04', '2025-10-27 06:10:28', NULL),
+(8, 'Fan', 'Red1', '4.3', 450.00, 500.00, 21, 2, '2025-10-27 06:11:07', '2025-10-27 06:11:07', 1);
 
 -- --------------------------------------------------------
 
@@ -250,7 +289,7 @@ CREATE TABLE `users` (
   `username` varchar(100) NOT NULL,
   `full_name` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
-  `role` enum('admin','employee') NOT NULL,
+  `role` enum('admin','employee','installer') NOT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -260,7 +299,10 @@ CREATE TABLE `users` (
 
 INSERT INTO `users` (`id`, `username`, `full_name`, `password`, `role`, `created_at`) VALUES
 (1, 'Admin', 'Admin 1', '$2y$10$cNntUpjwh.gr7wFHUi/mSOYl8QQsVH0ASu.9ASI/zbDxzhatW/4n6', 'admin', '2025-08-07 09:25:02'),
-(2, 'staff', 'Staff 1', '$2y$10$oDFh1kvK88Ci69V8WFCSR.bv6xxWjt5BUANCreYgwymWDSD9JI0re', 'employee', '2025-08-07 09:47:31');
+(2, 'staff', 'Staff 1', '$2y$10$oDFh1kvK88Ci69V8WFCSR.bv6xxWjt5BUANCreYgwymWDSD9JI0re', 'employee', '2025-08-07 09:47:31'),
+(3, 'installer', 'Installer 1', '$2y$10$zhQNIF9uqwR2UxpsXqCQBecSfNtvg0/Ouqm0CLpSnj091hVGje/Ni', 'installer', '2025-10-21 14:14:31'),
+(4, 'installer 2', 'Installer 2', '$2y$10$AlSz10Vm5Cbud003ZA0U7OQXwVD5C/3E0MKOf1RPRaQMWDGl4HhH6', 'installer', '2025-10-22 07:41:19'),
+(5, 'Roland', 'Sale', '$2y$10$GAbDm2Di3cTiNFphgDZnieV.DbRmtnU6CNx2pHKuVLGG3SNBX25ra', 'installer', '2025-10-26 16:09:22');
 
 --
 -- Indexes for dumped tables
@@ -278,7 +320,8 @@ ALTER TABLE `aircon_inventory`
 ALTER TABLE `aircon_sales`
   ADD PRIMARY KEY (`sale_id`),
   ADD KEY `idx_payment_method` (`payment_method`),
-  ADD KEY `idx_installment_period` (`installment_period`);
+  ADD KEY `idx_installment_period` (`installment_period`),
+  ADD KEY `idx_product_id` (`product_id`);
 
 --
 -- Indexes for table `brands`
@@ -291,6 +334,12 @@ ALTER TABLE `brands`
 --
 ALTER TABLE `category`
   ADD PRIMARY KEY (`category_id`);
+
+--
+-- Indexes for table `installer_schedules`
+--
+ALTER TABLE `installer_schedules`
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `products`
@@ -340,13 +389,13 @@ ALTER TABLE `aircon_inventory`
 -- AUTO_INCREMENT for table `aircon_sales`
 --
 ALTER TABLE `aircon_sales`
-  MODIFY `sale_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `sale_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
 -- AUTO_INCREMENT for table `brands`
 --
 ALTER TABLE `brands`
-  MODIFY `brand_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `brand_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `category`
@@ -355,10 +404,16 @@ ALTER TABLE `category`
   MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
 
 --
+-- AUTO_INCREMENT for table `installer_schedules`
+--
+ALTER TABLE `installer_schedules`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
 -- AUTO_INCREMENT for table `products`
 --
 ALTER TABLE `products`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `rice_inventory`
@@ -382,11 +437,17 @@ ALTER TABLE `suppliers`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `aircon_sales`
+--
+ALTER TABLE `aircon_sales`
+  ADD CONSTRAINT `fk_aircon_sales_product_id` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 
 --
 -- Constraints for table `products`
