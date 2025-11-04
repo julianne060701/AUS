@@ -332,6 +332,46 @@ if (!$schedule) {
                                     </div>
                                 </div>
                                 <?php endif; ?>
+
+                                <!-- Completion Image -->
+                                <?php if (!empty($schedule['completion_image'])): ?>
+                                <div class="info-section">
+                                    <h5 class="text-primary mb-3">
+                                        <i class="fas fa-camera mr-2"></i>Completion Photo
+                                    </h5>
+                                    <div class="ml-4">
+                                        <img src="../<?php echo htmlspecialchars($schedule['completion_image']); ?>" 
+                                             alt="Completion Image" 
+                                             class="img-fluid rounded" 
+                                             style="max-height: 300px; cursor: pointer;"
+                                             onclick="viewImage('../<?php echo htmlspecialchars($schedule['completion_image']); ?>')">
+                                    </div>
+                                </div>
+                                <?php endif; ?>
+
+                                <!-- Employee List -->
+                                <?php if (!empty($schedule['employee_list'])): ?>
+                                <div class="info-section">
+                                    <h5 class="text-primary mb-3">
+                                        <i class="fas fa-users mr-2"></i>Installation Team Members
+                                    </h5>
+                                    <div class="ml-4">
+                                        <?php 
+                                        $employees = preg_split('/[,\n\r]+/', $schedule['employee_list']);
+                                        foreach($employees as $employee): 
+                                            $employee = trim($employee);
+                                            if (!empty($employee)):
+                                        ?>
+                                            <span class="badge badge-secondary mr-2 mb-2" style="font-size: 0.9rem; padding: 0.5rem 1rem;">
+                                                <i class="fas fa-user mr-1"></i><?php echo htmlspecialchars($employee); ?>
+                                            </span>
+                                        <?php 
+                                            endif;
+                                        endforeach; 
+                                        ?>
+                                    </div>
+                                </div>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -416,6 +456,17 @@ if (!$schedule) {
                         </small>
                     </div>
                     
+                    <div class="form-group">
+                        <label for="employee_list" class="font-weight-bold">
+                            <i class="fas fa-users mr-2"></i>Installation Team Members *
+                        </label>
+                        <textarea class="form-control" id="employee_list" name="employee_list" rows="3" 
+                                  placeholder="Enter the names of employees who participated in the installation (one per line or separated by commas)" required></textarea>
+                        <small class="form-text text-muted">
+                            List all team members who worked on this installation. You can separate names with commas or put each name on a new line.
+                        </small>
+                    </div>
+                    
                     <div id="imagePreview" class="mt-3" style="display: none;">
                         <h6>Preview:</h6>
                         <img id="previewImg" src="" alt="Preview" class="img-fluid rounded" style="max-height: 300px;">
@@ -484,6 +535,7 @@ function showCompletionModal(scheduleId) {
     $('#completion_schedule_id').val(scheduleId);
     $('#completionForm')[0].reset();
     $('#imagePreview').hide();
+    $('#employee_list').val('');
     $('#completionModal').modal('show');
 }
 
