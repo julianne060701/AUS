@@ -41,12 +41,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </li> -->
 
     <!-- Category -->
-    <!-- <li class="nav-item <?= ($currentPage == 'categories.php') ? 'active' : '' ?>">
+    <li class="nav-item <?= ($currentPage == 'categories.php') ? 'active' : '' ?>">
         <a class="nav-link" href="../category/categories.php">
             <i class="fas fa-fw fa-tags"></i>
             <span>Categories</span>
         </a>
-    </li> -->
+    </li>
 
     <!-- Brand -->
     <li class="nav-item <?= ($currentPage == 'brands.php') ? 'active' : '' ?>">

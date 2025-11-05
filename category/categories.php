@@ -1,4 +1,5 @@
 <?php
+session_start();
 include '../config/conn.php';
 ?>
 
@@ -22,7 +23,7 @@ include '../config/conn.php';
             <?php include('../includes/topbar.php'); ?>
 
             <div class="container-fluid">
-                <h1 class="h3 mb-2 text-gray-800">Rice Categories</h1>
+                <h1 class="h3 mb-2 text-gray-800">Aircon Categories</h1>
 
                 <button type="button" class="btn btn-success mb-3" data-toggle="modal" data-target="#addCategoryModal">
                     <i class="fas fa-plus"></i> Add Category
