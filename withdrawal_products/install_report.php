@@ -63,7 +63,7 @@ if(!empty($params)) {
 
 $install_query = "SELECT 
     id, installer_name, customer_name, contact_number, address, schedule_date,
-    schedule_time, service_type, products_to_install, notes, status, created_at, updated_at
+    schedule_time, service_type, products_to_install, notes, status, cancel_note, created_at, updated_at
 FROM installer_schedules 
 $date_condition 
 ORDER BY schedule_date DESC, schedule_time DESC";
@@ -473,7 +473,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
                                                                     <td><?= $row['total_schedules'] > 0 ? number_format(($row['completed_count'] / $row['total_schedules']) * 100, 1) : 0 ?>%</td>
                                                                     <td>
-                                                                        <button type="button" class="btn btn-sm btn-info" onclick="viewCompletedSchedules('<?= htmlspecialchars($row['installer_name'], ENT_QUOTES) ?>')" title="View Completed Schedules">
+                                                                        <button type="button" class="btn btn-sm btn-info" onclick="viewCompletedSchedules('<?= htmlspecialchars($row['installer_name'], ENT_QUOTES) ?>')" title="View Schedules">
                                                                             <i class="fas fa-eye"></i> View
                                                                         </button>
                                                                     </td>
@@ -676,14 +676,14 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             <div class="modal-content">
                 <div class="modal-header" style="background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%); color: white;">
                     <h5 class="modal-title" id="completedSchedulesModalLabel">
-                        <i class="fas fa-check-circle"></i> Completed Installation Schedules
+                        <i class="fas fa-check-circle"></i> Installation Schedules
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
                         <h6 class="text-primary" id="installerNameHeader">Installer: <span id="installerNameDisplay"></span></h6>
-                        <p class="text-muted mb-0">Total Completed: <strong id="totalCompletedCount">0</strong></p>
+                        <p class="text-muted mb-0">Total Schedules: <strong id="totalCompletedCount">0</strong></p>
                     </div>
                     <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
                         <table class="table table-bordered table-hover" id="completedSchedulesTable">
@@ -698,12 +698,14 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                     <th>Service Type</th>
                                     <th>Products</th>
                                     <th>Notes</th>
+                                    <th>Status</th>
+                                    <th>Cancel Note</th>
                                     <th>Completed At</th>
                                 </tr>
                             </thead>
                             <tbody id="completedSchedulesTableBody">
                                 <tr>
-                                    <td colspan="10" class="text-center">
+                                    <td colspan="11" class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -1589,7 +1591,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error: ${data.error}</td></tr>`;
                         return;
                     }
                     
@@ -1597,7 +1599,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     document.getElementById('totalCompletedCount').textContent = data.total || 0;
                     
                     if (currentCompletedSchedules.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No completed schedules found for this installer.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted">No schedules found for this installer.</td></tr>`;
                         return;
                     }
                     
@@ -1619,6 +1621,26 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             return date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
                         };
                         
+                        // Determine status badge
+                        const status = schedule.status || 'N/A';
+                        let statusBadge = '';
+                        if (status === 'Completed') {
+                            statusBadge = '<span class="badge badge-completed">Completed</span>';
+                        } else if (status === 'Cancelled') {
+                            statusBadge = '<span class="badge badge-cancelled">Cancelled</span>';
+                        } else if (status === 'In Progress') {
+                            statusBadge = '<span class="badge badge-in-progress">In Progress</span>';
+                        } else if (status === 'Scheduled') {
+                            statusBadge = '<span class="badge badge-scheduled">Scheduled</span>';
+                        } else {
+                            statusBadge = '<span class="badge badge-secondary">' + escapeHtml(status) + '</span>';
+                        }
+                        
+                        // Show cancel_note only if status is Cancelled
+                        const cancelNote = (status === 'Cancelled' && schedule.cancel_note) 
+                            ? escapeHtml(schedule.cancel_note.length > 50 ? schedule.cancel_note.substring(0, 50) + '...' : schedule.cancel_note)
+                            : (status === 'Cancelled' ? '<span class="text-muted">No note</span>' : 'N/A');
+                        
                         row.innerHTML = `
                             <td>${schedule.id}</td>
                             <td>${escapeHtml(schedule.customer_name)}</td>
@@ -1629,6 +1651,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             <td>${escapeHtml(schedule.service_type || 'N/A')}</td>
                             <td>${escapeHtml(schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A')}</td>
                             <td>${escapeHtml(schedule.notes ? (schedule.notes.length > 30 ? schedule.notes.substring(0, 30) + '...' : schedule.notes) : 'N/A')}</td>
+                            <td>${statusBadge}</td>
+                            <td>${cancelNote}</td>
                             <td>${formatDateTime(completedAt)}</td>
                         `;
                         tbody.appendChild(row);
@@ -1636,7 +1660,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
                 });
         }
 
@@ -1698,12 +1722,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     doc.setFontSize(18);
                     doc.setTextColor(40, 40, 40);
                     const logoWidthUsed = 50; // Space reserved for logo
-                    doc.text('Completed Installation Schedules', 20 + logoWidthUsed, 20);
+                    doc.text('Installation Schedules', 20 + logoWidthUsed, 20);
                     
                     doc.setFontSize(12);
                     doc.setTextColor(100, 100, 100);
                     doc.text('Installer: ' + currentInstallerName, 20 + logoWidthUsed, 30);
-                    doc.text('Total Completed: ' + currentCompletedSchedules.length, 20 + logoWidthUsed, 36);
+                    doc.text('Total Schedules: ' + currentCompletedSchedules.length, 20 + logoWidthUsed, 36);
                     doc.text('Generated on: ' + new Date().toLocaleString(), 20 + logoWidthUsed, 42);
                     
                     // Prepare table data
@@ -1711,37 +1735,46 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                         const scheduleDate = schedule.schedule_date ? new Date(schedule.schedule_date) : null;
                         const scheduleTime = schedule.schedule_time ? schedule.schedule_time.substring(0, 5) : 'N/A';
                         const completedAt = schedule.completed_at ? new Date(schedule.completed_at) : null;
+                        const status = schedule.status || 'N/A';
                         
                         const formatDate = (date) => {
                             if (!date || isNaN(date.getTime())) return 'N/A';
                             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         };
                         
+                        // Get cancel note if status is Cancelled
+                        const cancelNote = (status === 'Cancelled' && schedule.cancel_note) 
+                            ? (schedule.cancel_note.length > 40 ? schedule.cancel_note.substring(0, 40) + '...' : schedule.cancel_note)
+                            : (status === 'Cancelled' ? 'No note' : 'N/A');
+                        
                         return [
                             schedule.id.toString(),
                             schedule.customer_name || 'N/A',
                             schedule.contact_number || 'N/A',
-                            schedule.address ? (schedule.address.length > 40 ? schedule.address.substring(0, 40) + '...' : schedule.address) : 'N/A',
+                            schedule.address ? (schedule.address.length > 30 ? schedule.address.substring(0, 30) + '...' : schedule.address) : 'N/A',
                             formatDate(scheduleDate),
                             scheduleTime,
                             schedule.service_type || 'N/A',
-                            schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A',
+                            schedule.products_to_install ? (schedule.products_to_install.length > 25 ? schedule.products_to_install.substring(0, 25) + '...' : schedule.products_to_install) : 'N/A',
+                            status,
+                            cancelNote,
                             formatDate(completedAt)
                         ];
                     });
                     
                     doc.autoTable({
                         startY: 50,
-                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Completed Date']],
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Status', 'Cancel Note', 'Completed Date']],
                         body: tableData,
                         theme: 'grid',
                         headStyles: { fillColor: [155, 89, 182], textColor: 255 },
                         styles: { fontSize: 7, cellPadding: 2 },
                         columnStyles: {
-                            0: { halign: 'center', cellWidth: 15 },
+                            0: { halign: 'center', cellWidth: 12 },
                             4: { halign: 'center' },
                             5: { halign: 'center' },
-                            8: { halign: 'center' }
+                            8: { halign: 'center' },
+                            10: { halign: 'center' }
                         },
                         margin: { top: 50 }
                     });
@@ -1782,12 +1815,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     // Add header without logo
                     doc.setFontSize(18);
                     doc.setTextColor(40, 40, 40);
-                    doc.text('Completed Installation Schedules', 20, 20);
+                    doc.text('Installation Schedules', 20, 20);
                     
                     doc.setFontSize(12);
                     doc.setTextColor(100, 100, 100);
                     doc.text('Installer: ' + currentInstallerName, 20, 30);
-                    doc.text('Total Completed: ' + currentCompletedSchedules.length, 20, 36);
+                    doc.text('Total Schedules: ' + currentCompletedSchedules.length, 20, 36);
                     doc.text('Generated on: ' + new Date().toLocaleString(), 20, 42);
                     
                     // Prepare table data
@@ -1795,37 +1828,46 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                         const scheduleDate = schedule.schedule_date ? new Date(schedule.schedule_date) : null;
                         const scheduleTime = schedule.schedule_time ? schedule.schedule_time.substring(0, 5) : 'N/A';
                         const completedAt = schedule.completed_at ? new Date(schedule.completed_at) : null;
+                        const status = schedule.status || 'N/A';
                         
                         const formatDate = (date) => {
                             if (!date || isNaN(date.getTime())) return 'N/A';
                             return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         };
                         
+                        // Get cancel note if status is Cancelled
+                        const cancelNote = (status === 'Cancelled' && schedule.cancel_note) 
+                            ? (schedule.cancel_note.length > 40 ? schedule.cancel_note.substring(0, 40) + '...' : schedule.cancel_note)
+                            : (status === 'Cancelled' ? 'No note' : 'N/A');
+                        
                         return [
                             schedule.id.toString(),
                             schedule.customer_name || 'N/A',
                             schedule.contact_number || 'N/A',
-                            schedule.address ? (schedule.address.length > 40 ? schedule.address.substring(0, 40) + '...' : schedule.address) : 'N/A',
+                            schedule.address ? (schedule.address.length > 30 ? schedule.address.substring(0, 30) + '...' : schedule.address) : 'N/A',
                             formatDate(scheduleDate),
                             scheduleTime,
                             schedule.service_type || 'N/A',
-                            schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A',
+                            schedule.products_to_install ? (schedule.products_to_install.length > 25 ? schedule.products_to_install.substring(0, 25) + '...' : schedule.products_to_install) : 'N/A',
+                            status,
+                            cancelNote,
                             formatDate(completedAt)
                         ];
                     });
                     
                     doc.autoTable({
                         startY: 50,
-                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Completed Date']],
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Status', 'Cancel Note', 'Completed Date']],
                         body: tableData,
                         theme: 'grid',
                         headStyles: { fillColor: [155, 89, 182], textColor: 255 },
                         styles: { fontSize: 7, cellPadding: 2 },
                         columnStyles: {
-                            0: { halign: 'center', cellWidth: 15 },
+                            0: { halign: 'center', cellWidth: 12 },
                             4: { halign: 'center' },
                             5: { halign: 'center' },
-                            8: { halign: 'center' }
+                            8: { halign: 'center' },
+                            10: { halign: 'center' }
                         },
                         margin: { top: 50 }
                     });

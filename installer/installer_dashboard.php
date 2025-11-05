@@ -695,13 +695,13 @@ foreach ($schedules as $schedule) {
             display: flex;
             transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             will-change: transform;
-            width: 200%;
+            width: 300%;
             height: 100%;
         }
 
         .sliding-page {
-            min-width: 50%;
-            width: 50%;
+            min-width: 33.333%;
+            width: 33.333%;
             padding: 2rem;
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -1353,13 +1353,16 @@ foreach ($schedules as $schedule) {
                 <!-- Main Grid Layout -->
                 <div class="main-grid">
                     <?php
-                    // Separate upcoming and completed schedules
+                    // Separate upcoming, completed, and cancelled schedules
                     $upcoming_schedules = [];
                     $completed_schedules = [];
+                    $cancelled_schedules = [];
                     
                     foreach ($schedules as $schedule) {
                         if ($schedule['status'] === 'Completed') {
                             $completed_schedules[] = $schedule;
+                        } elseif ($schedule['status'] === 'Cancelled') {
+                            $cancelled_schedules[] = $schedule;
                         } else {
                             $upcoming_schedules[] = $schedule;
                         }
@@ -1381,17 +1384,33 @@ foreach ($schedules as $schedule) {
                     $completed_pages = ceil($completed_total / $items_per_page);
                     $completed_start = ($current_page - 1) * $items_per_page;
                     $completed_paginated = array_slice($completed_schedules, $completed_start, $items_per_page);
+                    
+                    // Calculate pagination for cancelled schedules
+                    $cancelled_total = count($cancelled_schedules);
+                    $cancelled_pages = ceil($cancelled_total / $items_per_page);
+                    $cancelled_start = ($current_page - 1) * $items_per_page;
+                    $cancelled_paginated = array_slice($cancelled_schedules, $cancelled_start, $items_per_page);
                     ?>
 
                     <!-- Section Tabs -->
+                    <?php 
+                    $active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'upcoming';
+                    if (!in_array($active_tab, ['upcoming', 'completed', 'cancelled'])) {
+                        $active_tab = 'upcoming';
+                    }
+                    ?>
                     <div class="section-tabs">
-                        <button class="section-tab active" onclick="switchSection('upcoming')">
+                        <button class="section-tab <?php echo $active_tab === 'upcoming' ? 'active' : ''; ?>" onclick="switchSection('upcoming')">
                             <i class="fas fa-clock"></i>
                             Upcoming (<?php echo $upcoming_total; ?>)
                         </button>
-                        <button class="section-tab" onclick="switchSection('completed')">
+                        <button class="section-tab <?php echo $active_tab === 'completed' ? 'active' : ''; ?>" onclick="switchSection('completed')">
                             <i class="fas fa-check-circle"></i>
                             Completed (<?php echo $completed_total; ?>)
+                        </button>
+                        <button class="section-tab <?php echo $active_tab === 'cancelled' ? 'active' : ''; ?>" onclick="switchSection('cancelled')">
+                            <i class="fas fa-times-circle"></i>
+                            Cancelled (<?php echo $cancelled_total; ?>)
                         </button>
                     </div>
 
@@ -1527,7 +1546,7 @@ foreach ($schedules as $schedule) {
                                                     </button>
                                                     <?php endif; ?>
                                                     <?php if (in_array($schedule['status'], ['Scheduled', 'In Progress'])): ?>
-                                                    <button class="action-button danger" onclick="updateStatus(<?php echo $schedule['id']; ?>, 'Cancelled')">
+                                                    <button type="button" class="action-button danger" onclick="showCancelModal(<?php echo $schedule['id']; ?>); return false;">
                                                         <i class="fas fa-times"></i>
                                                         Cancel
                                                     </button>
@@ -1665,11 +1684,123 @@ foreach ($schedules as $schedule) {
                                     <?php endforeach; ?>
                                 <?php endif; ?>
                             </div>
+
+                            <!-- Cancelled Schedules Page -->
+                            <div class="sliding-page" id="cancelledPage">
+                                <?php if (empty($cancelled_paginated)): ?>
+                                    <div class="empty-state" style="grid-column: 1 / -1;">
+                                        <i class="fas fa-ban"></i>
+                                        <h3>No Cancelled Installations</h3>
+                                        <p>You don't have any cancelled installations.</p>
+                                    </div>
+                                <?php else: ?>
+                                    <?php foreach ($cancelled_paginated as $schedule): ?>
+                                        <div class="schedule-card cancelled">
+                                            <!-- Card Header with Date -->
+                                            <div class="card-header">
+                                                <div class="date-time-section">
+                                                    <div class="date-display">
+                                                        <div class="date-day"><?php echo date('d', strtotime($schedule['schedule_date'])); ?></div>
+                                                        <div class="date-month"><?php echo date('M Y', strtotime($schedule['schedule_date'])); ?></div>
+                                                    </div>
+                                                    <div class="time-badge">
+                                                        <i class="far fa-clock"></i>
+                                                        <?php echo date('g:i A', strtotime($schedule['schedule_time'])); ?>
+                                                    </div>
+                                                </div>
+                                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                    <span class="status-badge status-cancelled">
+                                                        <?php echo $schedule['status']; ?>
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <!-- Card Content -->
+                                            <div class="card-content">
+
+                                                <!-- Customer Info -->
+                                                <h3 class="customer-name">
+                                                    <i class="fas fa-user"></i>
+                                                    <?php echo htmlspecialchars($schedule['customer_name']); ?>
+                                                </h3>
+                                                <span class="service-type">
+                                                    <i class="fas fa-tools"></i>
+                                                    <?php echo htmlspecialchars($schedule['service_type']); ?>
+                                                </span>
+
+                                                <!-- Info Section -->
+                                                <div class="info-row">
+                                                    <i class="fas fa-map-marker-alt"></i>
+                                                    <span><?php echo htmlspecialchars(substr($schedule['address'], 0, 50)) . (strlen($schedule['address']) > 50 ? '...' : ''); ?></span>
+                                                </div>
+                                                <div class="info-row">
+                                                    <i class="fas fa-phone"></i>
+                                                    <span><?php echo htmlspecialchars($schedule['contact_number']); ?></span>
+                                                </div>
+
+                                                <!-- Products -->
+                                                <?php if (!empty($schedule['product_name'])): ?>
+                                                <div class="product-details">
+                                                    <div class="product-info-header">
+                                                        <i class="fas fa-box"></i>
+                                                        <span class="product-info-title">Products to Install</span>
+                                                    </div>
+                                                    <div class="product-tags">
+                                                        <?php 
+                                                        $quantity = isset($schedule['quantity_to_install']) ? $schedule['quantity_to_install'] : 1;
+                                                        $product_display = $schedule['product_name'];
+                                                        
+                                                        if (!empty($schedule['capacity'])) {
+                                                            $product_display .= " ({$schedule['capacity']})";
+                                                        }
+                                                        
+                                                        if (!empty($schedule['brand_name'])) {
+                                                            $product_display .= " - {$schedule['brand_name']}";
+                                                        }
+                                                        
+                                                        if (!empty($schedule['category_name'])) {
+                                                            $product_display .= " [{$schedule['category_name']}]";
+                                                        }
+                                                        ?>
+                                                        <span class="product-tag">
+                                                            <span class="product-name"><?php echo htmlspecialchars($product_display); ?></span>
+                                                            <span class="quantity-badge">Qty: <?php echo $quantity; ?></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <!-- Cancellation Note -->
+                                                <?php if (!empty($schedule['cancel_note'])): ?>
+                                                <div class="info-row" style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e2e8f0;">
+                                                    <i class="fas fa-comment-alt" style="color: #ef4444;"></i>
+                                                    <div style="flex: 1;">
+                                                        <strong style="color: #991b1b;">Cancellation Reason:</strong>
+                                                        <p style="margin: 0.5rem 0 0 0; color: #64748b;"><?php echo htmlspecialchars($schedule['cancel_note']); ?></p>
+                                                    </div>
+                                                </div>
+                                                <?php endif; ?>
+
+                                                <!-- Action Buttons -->
+                                                <div class="card-actions">
+                                                    <button class="action-button primary" onclick="viewDetails(<?php echo $schedule['id']; ?>)">
+                                                        <i class="fas fa-info-circle"></i>
+                                                        View Details
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Enhanced Pagination -->
-                    <?php if ($upcoming_pages > 1 || $completed_pages > 1): ?>
+                    <?php 
+                    $max_pages = max($upcoming_pages, $completed_pages, $cancelled_pages);
+                    if ($max_pages > 1): 
+                    ?>
                     <div class="pagination-container">
                         <div class="pagination-nav">
                             <button class="pagination-button" onclick="changePage(<?php echo max(1, $current_page - 1); ?>)" 
@@ -1679,21 +1810,21 @@ foreach ($schedules as $schedule) {
                             </button>
                             
                             <div class="pagination-dots">
-                                <?php for ($i = 1; $i <= max($upcoming_pages, $completed_pages); $i++): ?>
+                                <?php for ($i = 1; $i <= $max_pages; $i++): ?>
                                     <div class="pagination-dot <?php echo $i === $current_page ? 'active' : ''; ?>" 
                                          onclick="changePage(<?php echo $i; ?>)"></div>
                                 <?php endfor; ?>
                             </div>
                             
-                            <button class="pagination-button" onclick="changePage(<?php echo min(max($upcoming_pages, $completed_pages), $current_page + 1); ?>)"
-                                    <?php echo $current_page >= max($upcoming_pages, $completed_pages) ? 'disabled' : ''; ?>>
+                            <button class="pagination-button" onclick="changePage(<?php echo min($max_pages, $current_page + 1); ?>)"
+                                    <?php echo $current_page >= $max_pages ? 'disabled' : ''; ?>>
                                 Next
                                 <i class="fas fa-chevron-right"></i>
                             </button>
                         </div>
                         
                         <div class="pagination-info">
-                            Page <?php echo $current_page; ?> of <?php echo max($upcoming_pages, $completed_pages); ?>
+                            Page <?php echo $current_page; ?> of <?php echo $max_pages; ?>
                         </div>
                         
                         <div class="autoplay-controls">
@@ -1774,6 +1905,48 @@ foreach ($schedules as $schedule) {
     </div>
 </div>
 
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="cancelModalLabel">
+                    <i class="fas fa-times-circle mr-2"></i>Cancel Installation
+                </h5>
+                <button type="button" class="close text-white" data-bs-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="cancelForm">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Please provide a reason for cancelling this installation. This information will be recorded.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cancel_note" class="font-weight-bold">
+                            <i class="fas fa-comment-alt mr-2"></i>Reason for Cancellation *
+                        </label>
+                        <textarea class="form-control" id="cancel_note" name="cancel_note" rows="4" 
+                                  placeholder="Please explain why you need to cancel this installation..." required></textarea>
+                        <small class="form-text text-muted">
+                            Provide a detailed reason for cancelling this installation schedule.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger" id="cancelBtn">
+                        <i class="fas fa-times mr-2"></i>Cancel Installation
+                    </button>
+                </div>
+                <input type="hidden" id="cancel_schedule_id" name="schedule_id">
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Image Modal -->
 <div class="modal fade" id="imageModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1835,6 +2008,30 @@ function showCompletionModal(scheduleId) {
     $('#completionModal').modal('show');
 }
 
+function showCancelModal(scheduleId) {
+    // Clear any previous values
+    $('#cancel_schedule_id').val(scheduleId);
+    $('#cancelForm')[0].reset();
+    $('#cancel_note').val('');
+    
+    // Use Bootstrap 5 modal API
+    const cancelModalElement = document.getElementById('cancelModal');
+    if (cancelModalElement) {
+        // Check if Bootstrap 5 is available
+        if (typeof bootstrap !== 'undefined') {
+            const cancelModal = new bootstrap.Modal(cancelModalElement);
+            cancelModal.show();
+        } else {
+            // Fallback to jQuery if Bootstrap 5 modal constructor not available
+            $('#cancelModal').modal('show');
+        }
+    } else {
+        console.error('Cancel modal element not found');
+    }
+    
+    return false; // Prevent any default behavior
+}
+
 // Image preview functionality
 $('#completion_image').change(function() {
     const file = this.files[0];
@@ -1891,6 +2088,64 @@ function viewImage(imagePath) {
     $('#imageModal').modal('show');
 }
 
+// Handle cancel form submission
+$('#cancelForm').submit(function(e) {
+    e.preventDefault();
+    
+    const scheduleId = $('#cancel_schedule_id').val();
+    const cancelNote = $('#cancel_note').val().trim();
+    
+    if (!cancelNote) {
+        alert('Please provide a reason for cancellation.');
+        return;
+    }
+    
+    const cancelBtn = $('#cancelBtn');
+    
+    // Disable button and show loading
+    cancelBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+    
+    $.ajax({
+        url: 'update_schedule_status.php',
+        method: 'POST',
+        data: {
+            schedule_id: scheduleId,
+            status: 'Cancelled',
+            cancel_note: cancelNote
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert('Installation cancelled successfully!');
+                // Hide modal using Bootstrap 5 API
+                const cancelModalElement = document.getElementById('cancelModal');
+                if (cancelModalElement && typeof bootstrap !== 'undefined') {
+                    const cancelModal = bootstrap.Modal.getInstance(cancelModalElement);
+                    if (cancelModal) {
+                        cancelModal.hide();
+                    }
+                } else {
+                    $('#cancelModal').modal('hide');
+                }
+                // Reload and go to cancelled tab
+                const url = new URL(window.location);
+                url.searchParams.set('tab', 'cancelled');
+                url.searchParams.delete('page'); // Reset to first page
+                window.location.href = url.toString();
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('Error cancelling installation. Please try again.');
+        },
+        complete: function() {
+            // Re-enable button
+            cancelBtn.prop('disabled', false).html('<i class="fas fa-times mr-2"></i>Cancel Installation');
+        }
+    });
+});
+
 // Global variables for sliding functionality
 let currentSection = 'upcoming';
 let autoplayInterval = null;
@@ -1904,14 +2159,23 @@ function switchSection(section) {
     tabs.forEach(tab => tab.classList.remove('active'));
     event.target.closest('.section-tab').classList.add('active');
     
-    // Slide to appropriate section
+    // Slide to appropriate section (3 tabs: 0%, -33.33%, -66.66%)
     if (section === 'upcoming') {
         wrapper.style.transform = 'translateX(0)';
         currentSection = 'upcoming';
-    } else {
-        wrapper.style.transform = 'translateX(-50%)';
+    } else if (section === 'completed') {
+        wrapper.style.transform = 'translateX(-33.333%)';
         currentSection = 'completed';
+    } else if (section === 'cancelled') {
+        wrapper.style.transform = 'translateX(-66.666%)';
+        currentSection = 'cancelled';
     }
+    
+    // Update URL to preserve tab state
+    const url = new URL(window.location);
+    url.searchParams.set('tab', section);
+    // Update URL without reloading
+    window.history.pushState({}, '', url.toString());
 }
 
 function changePage(page) {
@@ -1943,16 +2207,20 @@ function startAutoplay() {
         const currentPage = parseInt(new URLSearchParams(window.location.search).get('page')) || 1;
         const maxPages = Math.max(
             <?php echo $upcoming_pages; ?>,
-            <?php echo $completed_pages; ?>
+            <?php echo $completed_pages; ?>,
+            <?php echo $cancelled_pages; ?>
         );
         
         if (currentPage < maxPages) {
             changePage(currentPage + 1);
         } else {
-            // Switch to other section if at end
+            // Switch to next section if at end
             if (currentSection === 'upcoming') {
                 const completedTab = document.querySelector('.section-tab:nth-child(2)');
                 if (completedTab) completedTab.click();
+            } else if (currentSection === 'completed') {
+                const cancelledTab = document.querySelector('.section-tab:nth-child(3)');
+                if (cancelledTab) cancelledTab.click();
             } else {
                 const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
                 if (upcomingTab) upcomingTab.click();
@@ -1971,9 +2239,34 @@ function stopAutoplay() {
 // Initialize sliding functionality
 document.addEventListener('DOMContentLoaded', function() {
     const wrapper = document.getElementById('slidingWrapper');
+    
+    // Check for tab parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const tabParam = urlParams.get('tab');
+    
     if (wrapper) {
-        // Set initial position
-        wrapper.style.transform = 'translateX(0)';
+        // Set initial position based on URL parameter
+        const tabs = document.querySelectorAll('.section-tab');
+        
+        if (tabParam === 'completed') {
+            wrapper.style.transform = 'translateX(-33.333%)';
+            currentSection = 'completed';
+            tabs.forEach(tab => tab.classList.remove('active'));
+            const completedTab = document.querySelector('.section-tab:nth-child(2)');
+            if (completedTab) completedTab.classList.add('active');
+        } else if (tabParam === 'cancelled') {
+            wrapper.style.transform = 'translateX(-66.666%)';
+            currentSection = 'cancelled';
+            tabs.forEach(tab => tab.classList.remove('active'));
+            const cancelledTab = document.querySelector('.section-tab:nth-child(3)');
+            if (cancelledTab) cancelledTab.classList.add('active');
+        } else {
+            wrapper.style.transform = 'translateX(0)';
+            currentSection = 'upcoming';
+            tabs.forEach(tab => tab.classList.remove('active'));
+            const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
+            if (upcomingTab) upcomingTab.classList.add('active');
+        }
     }
     
     // Enhanced touch/swipe support for all devices
@@ -2022,14 +2315,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 const threshold = 50;
                 
                 if (Math.abs(diff) > threshold) {
-                    if (diff > 0 && currentSection === 'upcoming') {
-                        // Swipe left - go to completed
-                        const completedTab = document.querySelector('.section-tab:nth-child(2)');
-                        if (completedTab) completedTab.click();
-                    } else if (diff < 0 && currentSection === 'completed') {
-                        // Swipe right - go to upcoming
-                        const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
-                        if (upcomingTab) upcomingTab.click();
+                    if (diff > 0) {
+                        // Swipe left - go to next tab
+                        if (currentSection === 'upcoming') {
+                            const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                            if (completedTab) completedTab.click();
+                        } else if (currentSection === 'completed') {
+                            const cancelledTab = document.querySelector('.section-tab:nth-child(3)');
+                            if (cancelledTab) cancelledTab.click();
+                        }
+                    } else {
+                        // Swipe right - go to previous tab
+                        if (currentSection === 'completed') {
+                            const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
+                            if (upcomingTab) upcomingTab.click();
+                        } else if (currentSection === 'cancelled') {
+                            const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                            if (completedTab) completedTab.click();
+                        }
                     }
                 }
             }
@@ -2059,12 +2362,24 @@ document.addEventListener('DOMContentLoaded', function() {
             const threshold = 100; // Higher threshold for mouse
             
             if (Math.abs(diff) > threshold) {
-                if (diff > 0 && currentSection === 'upcoming') {
-                    const completedTab = document.querySelector('.section-tab:nth-child(2)');
-                    if (completedTab) completedTab.click();
-                } else if (diff < 0 && currentSection === 'completed') {
-                    const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
-                    if (upcomingTab) upcomingTab.click();
+                if (diff > 0) {
+                    // Swipe left - go to next tab
+                    if (currentSection === 'upcoming') {
+                        const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                        if (completedTab) completedTab.click();
+                    } else if (currentSection === 'completed') {
+                        const cancelledTab = document.querySelector('.section-tab:nth-child(3)');
+                        if (cancelledTab) cancelledTab.click();
+                    }
+                } else {
+                    // Swipe right - go to previous tab
+                    if (currentSection === 'completed') {
+                        const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
+                        if (upcomingTab) upcomingTab.click();
+                    } else if (currentSection === 'cancelled') {
+                        const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                        if (completedTab) completedTab.click();
+                    }
                 }
             }
         });
@@ -2079,12 +2394,24 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Keyboard navigation support
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'ArrowLeft' && currentSection === 'completed') {
-            const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
-            if (upcomingTab) upcomingTab.click();
-        } else if (e.key === 'ArrowRight' && currentSection === 'upcoming') {
-            const completedTab = document.querySelector('.section-tab:nth-child(2)');
-            if (completedTab) completedTab.click();
+        if (e.key === 'ArrowLeft') {
+            // Go to previous tab
+            if (currentSection === 'completed') {
+                const upcomingTab = document.querySelector('.section-tab:nth-child(1)');
+                if (upcomingTab) upcomingTab.click();
+            } else if (currentSection === 'cancelled') {
+                const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                if (completedTab) completedTab.click();
+            }
+        } else if (e.key === 'ArrowRight') {
+            // Go to next tab
+            if (currentSection === 'upcoming') {
+                const completedTab = document.querySelector('.section-tab:nth-child(2)');
+                if (completedTab) completedTab.click();
+            } else if (currentSection === 'completed') {
+                const cancelledTab = document.querySelector('.section-tab:nth-child(3)');
+                if (cancelledTab) cancelledTab.click();
+            }
         }
     });
     
@@ -2095,8 +2422,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (wrapper) {
             if (currentSection === 'upcoming') {
                 wrapper.style.transform = 'translateX(0)';
-            } else {
-                wrapper.style.transform = 'translateX(-50%)';
+            } else if (currentSection === 'completed') {
+                wrapper.style.transform = 'translateX(-33.333%)';
+            } else if (currentSection === 'cancelled') {
+                wrapper.style.transform = 'translateX(-66.666%)';
             }
         }
     });

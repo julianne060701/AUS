@@ -56,9 +56,9 @@ switch($filter) {
 $query = "SELECT 
     id, installer_name, customer_name, contact_number, address, 
     schedule_date, schedule_time, service_type, products_to_install, 
-    notes, status, completed_at, created_at
+    notes, status, cancel_note, completed_at, created_at
 FROM installer_schedules 
-WHERE installer_name = ? AND status = 'Completed' 
+WHERE installer_name = ? AND (status = 'Completed' OR status = 'Cancelled') 
 $date_condition
 ORDER BY completed_at DESC, schedule_date DESC";
 
@@ -87,6 +87,7 @@ while ($row = $result->fetch_assoc()) {
         'products_to_install' => $row['products_to_install'],
         'notes' => $row['notes'],
         'status' => $row['status'],
+        'cancel_note' => $row['cancel_note'],
         'completed_at' => $row['completed_at'],
         'created_at' => $row['created_at']
     ];

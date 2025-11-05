@@ -398,7 +398,7 @@ if (!$schedule) {
                                     <?php endif; ?>
                                     
                                     <?php if (in_array($schedule['status'], ['Scheduled', 'In Progress'])): ?>
-                                    <button class="btn btn-danger btn-lg" onclick="updateStatus(<?php echo $schedule['id']; ?>, 'Cancelled')">
+                                    <button class="btn btn-danger btn-lg" onclick="showCancelModal(<?php echo $schedule['id']; ?>)">
                                         <i class="fas fa-times mr-2"></i>Cancel Installation
                                     </button>
                                     <?php endif; ?>
@@ -484,6 +484,48 @@ if (!$schedule) {
     </div>
 </div>
 
+<!-- Cancel Modal -->
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-times-circle mr-2"></i>Cancel Installation
+                </h5>
+                <button type="button" class="close text-white" data-dismiss="modal">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="cancelForm">
+                <div class="modal-body">
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        Please provide a reason for cancelling this installation. This information will be recorded.
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cancel_note" class="font-weight-bold">
+                            <i class="fas fa-comment-alt mr-2"></i>Reason for Cancellation *
+                        </label>
+                        <textarea class="form-control" id="cancel_note" name="cancel_note" rows="4" 
+                                  placeholder="Please explain why you need to cancel this installation..." required></textarea>
+                        <small class="form-text text-muted">
+                            Provide a detailed reason for cancelling this installation schedule.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger" id="cancelBtn">
+                        <i class="fas fa-times mr-2"></i>Cancel Installation
+                    </button>
+                </div>
+                <input type="hidden" id="cancel_schedule_id" name="schedule_id">
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Image Modal -->
 <div class="modal fade" id="imageModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -537,6 +579,12 @@ function showCompletionModal(scheduleId) {
     $('#imagePreview').hide();
     $('#employee_list').val('');
     $('#completionModal').modal('show');
+}
+
+function showCancelModal(scheduleId) {
+    $('#cancel_schedule_id').val(scheduleId);
+    $('#cancelForm')[0].reset();
+    $('#cancelModal').modal('show');
 }
 
 // Image preview functionality
@@ -594,6 +642,52 @@ function viewImage(imagePath) {
     $('#modalImage').attr('src', imagePath);
     $('#imageModal').modal('show');
 }
+
+// Handle cancel form submission
+$('#cancelForm').submit(function(e) {
+    e.preventDefault();
+    
+    const scheduleId = $('#cancel_schedule_id').val();
+    const cancelNote = $('#cancel_note').val().trim();
+    
+    if (!cancelNote) {
+        alert('Please provide a reason for cancellation.');
+        return;
+    }
+    
+    const cancelBtn = $('#cancelBtn');
+    
+    // Disable button and show loading
+    cancelBtn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin mr-2"></i>Processing...');
+    
+    $.ajax({
+        url: 'update_schedule_status.php',
+        method: 'POST',
+        data: {
+            schedule_id: scheduleId,
+            status: 'Cancelled',
+            cancel_note: cancelNote
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                alert('Installation cancelled successfully!');
+                $('#cancelModal').modal('hide');
+                // Redirect back to dashboard on cancelled tab
+                window.location.href = 'installer_dashboard.php?tab=cancelled';
+            } else {
+                alert('Error: ' + response.message);
+            }
+        },
+        error: function() {
+            alert('Error cancelling installation. Please try again.');
+        },
+        complete: function() {
+            // Re-enable button
+            cancelBtn.prop('disabled', false).html('<i class="fas fa-times mr-2"></i>Cancel Installation');
+        }
+    });
+});
 </script>
 
 </body>

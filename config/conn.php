@@ -3,7 +3,7 @@
 date_default_timezone_set('Asia/Manila');
 
 $host = "localhost";
-$db = "ausdb";
+$db = "bigasandb";
 $user = "root";
 $pass = "";
 

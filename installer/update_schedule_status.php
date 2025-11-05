@@ -37,10 +37,17 @@ $installer_name = $user_data['full_name'];
 // Get POST data
 $schedule_id = isset($_POST['schedule_id']) ? (int)$_POST['schedule_id'] : 0;
 $new_status = isset($_POST['status']) ? trim($_POST['status']) : '';
+$cancel_note = isset($_POST['cancel_note']) ? trim($_POST['cancel_note']) : '';
 
 // Validate input
 if ($schedule_id <= 0 || empty($new_status)) {
     echo json_encode(['success' => false, 'message' => 'Invalid schedule ID or status']);
+    exit();
+}
+
+// If status is Cancelled, cancel_note is required
+if ($new_status === 'Cancelled' && empty($cancel_note)) {
+    echo json_encode(['success' => false, 'message' => 'Please provide a reason for cancellation']);
     exit();
 }
 
@@ -64,10 +71,16 @@ try {
         exit();
     }
     
-    // Update the status
-    $update_query = "UPDATE installer_schedules SET status = ? WHERE id = ? AND installer_name = ?";
-    $update_stmt = $conn->prepare($update_query);
-    $update_stmt->bind_param("sis", $new_status, $schedule_id, $installer_name);
+    // Update the status and cancel_note if provided
+    if ($new_status === 'Cancelled' && !empty($cancel_note)) {
+        $update_query = "UPDATE installer_schedules SET status = ?, cancel_note = ? WHERE id = ? AND installer_name = ?";
+        $update_stmt = $conn->prepare($update_query);
+        $update_stmt->bind_param("ssis", $new_status, $cancel_note, $schedule_id, $installer_name);
+    } else {
+        $update_query = "UPDATE installer_schedules SET status = ? WHERE id = ? AND installer_name = ?";
+        $update_stmt = $conn->prepare($update_query);
+        $update_stmt->bind_param("sis", $new_status, $schedule_id, $installer_name);
+    }
     
     if ($update_stmt->execute()) {
         if ($update_stmt->affected_rows > 0) {
