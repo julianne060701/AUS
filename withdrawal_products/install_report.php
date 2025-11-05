@@ -225,6 +225,54 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             from { opacity: 0; transform: translateY(20px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        
+        /* Completed Schedules Modal Styles */
+        #completedSchedulesModal .modal-content {
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        
+        #completedSchedulesModal .table-info th {
+            background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%);
+            color: white;
+        }
+        
+        #completedSchedulesModal .table tbody tr:hover {
+            background-color: rgba(155, 89, 182, 0.1);
+        }
+        
+        #completedSchedulesModal .btn-info {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+        }
+        
+        #completedSchedulesModal .btn-info:hover {
+            background: linear-gradient(135deg, #2980B9 0%, #1F618D 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        .btn-sm {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.875rem;
+        }
+        
+        /* View Button in Installer Table */
+        #installerTable .btn-info {
+            background: linear-gradient(135deg, #3498DB 0%, #2980B9 100%);
+            border: none;
+            color: white;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        #installerTable .btn-info:hover {
+            background: linear-gradient(135deg, #2980B9 0%, #1F618D 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
     </style>
 </head> 
 <body id="page-top"> 
@@ -408,11 +456,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <th onclick="sortInstallerTable(4)">Completed <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortInstallerTable(5)">Cancelled <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortInstallerTable(6)">Completion Rate <i class="fas fa-sort"></i></th>
+                                                                    <th>Actions</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 <?php if(empty($installer_data)): ?>
-                                                                <tr><td colspan="7" class="text-center">No installer data available</td></tr>
+                                                                <tr><td colspan="8" class="text-center">No installer data available</td></tr>
                                                                 <?php else: ?>
                                                                 <?php foreach($installer_data as $row): ?>
                                                                 <tr>
@@ -423,6 +472,11 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <td><span class="badge badge-completed"><?= number_format($row['completed_count']) ?></span></td>
                                                                     <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
                                                                     <td><?= $row['total_schedules'] > 0 ? number_format(($row['completed_count'] / $row['total_schedules']) * 100, 1) : 0 ?>%</td>
+                                                                    <td>
+                                                                        <button type="button" class="btn btn-sm btn-info" onclick="viewCompletedSchedules('<?= htmlspecialchars($row['installer_name'], ENT_QUOTES) ?>')" title="View Completed Schedules">
+                                                                            <i class="fas fa-eye"></i> View
+                                                                        </button>
+                                                                    </td>
                                                                 </tr>
                                                                 <?php endforeach; ?>
                                                                 <?php endif; ?>
@@ -613,6 +667,59 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 </div> 
             </div> 
             <?php include('../includes/footer.php'); ?> 
+        </div>
+    </div>
+
+    <!-- Completed Schedules Modal -->
+    <div class="modal fade" id="completedSchedulesModal" tabindex="-1" aria-labelledby="completedSchedulesModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header" style="background: linear-gradient(135deg, #9B59B6 0%, #8E44AD 100%); color: white;">
+                    <h5 class="modal-title" id="completedSchedulesModalLabel">
+                        <i class="fas fa-check-circle"></i> Completed Installation Schedules
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary" id="installerNameHeader">Installer: <span id="installerNameDisplay"></span></h6>
+                        <p class="text-muted mb-0">Total Completed: <strong id="totalCompletedCount">0</strong></p>
+                    </div>
+                    <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                        <table class="table table-bordered table-hover" id="completedSchedulesTable">
+                            <thead class="table-info" style="position: sticky; top: 0; z-index: 10;">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Contact Number</th>
+                                    <th>Address</th>
+                                    <th>Schedule Date</th>
+                                    <th>Schedule Time</th>
+                                    <th>Service Type</th>
+                                    <th>Products</th>
+                                    <th>Notes</th>
+                                    <th>Completed At</th>
+                                </tr>
+                            </thead>
+                            <tbody id="completedSchedulesTableBody">
+                                <tr>
+                                    <td colspan="10" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" onclick="exportCompletedSchedulesPDF()">
+                        <i class="fas fa-file-pdf"></i> Export PDF
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1444,6 +1551,307 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     }
                 }
             });
+        }
+
+        // Completed Schedules Modal Functions
+        let currentInstallerName = '';
+        let currentCompletedSchedules = [];
+
+        function viewCompletedSchedules(installerName) {
+            currentInstallerName = installerName;
+            
+            // Update modal header
+            document.getElementById('installerNameDisplay').textContent = installerName;
+            
+            // Show modal
+            const modal = new bootstrap.Modal(document.getElementById('completedSchedulesModal'));
+            modal.show();
+            
+            // Reset table body with loading spinner
+            const tbody = document.getElementById('completedSchedulesTableBody');
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="10" class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </td>
+                </tr>
+            `;
+            
+            // Get filter values from the page
+            const filter = '<?= $filter ?>';
+            const startDate = '<?= $start_date ?>';
+            const endDate = '<?= $end_date ?>';
+            
+            // Fetch completed schedules
+            fetch(`get_completed_schedules.php?installer_name=${encodeURIComponent(installerName)}&filter=${filter}&start_date=${startDate}&end_date=${endDate}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error: ${data.error}</td></tr>`;
+                        return;
+                    }
+                    
+                    currentCompletedSchedules = data.schedules || [];
+                    document.getElementById('totalCompletedCount').textContent = data.total || 0;
+                    
+                    if (currentCompletedSchedules.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="10" class="text-center text-muted">No completed schedules found for this installer.</td></tr>`;
+                        return;
+                    }
+                    
+                    // Populate table
+                    tbody.innerHTML = '';
+                    currentCompletedSchedules.forEach(schedule => {
+                        const row = document.createElement('tr');
+                        const scheduleDate = schedule.schedule_date ? new Date(schedule.schedule_date) : null;
+                        const scheduleTime = schedule.schedule_time ? schedule.schedule_time.substring(0, 5) : 'N/A';
+                        const completedAt = schedule.completed_at ? new Date(schedule.completed_at) : null;
+                        
+                        const formatDate = (date) => {
+                            if (!date || isNaN(date.getTime())) return 'N/A';
+                            return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        };
+                        
+                        const formatDateTime = (date) => {
+                            if (!date || isNaN(date.getTime())) return 'N/A';
+                            return date.toLocaleString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                        };
+                        
+                        row.innerHTML = `
+                            <td>${schedule.id}</td>
+                            <td>${escapeHtml(schedule.customer_name)}</td>
+                            <td>${escapeHtml(schedule.contact_number)}</td>
+                            <td>${escapeHtml(schedule.address ? (schedule.address.length > 50 ? schedule.address.substring(0, 50) + '...' : schedule.address) : 'N/A')}</td>
+                            <td>${formatDate(scheduleDate)}</td>
+                            <td>${scheduleTime}</td>
+                            <td>${escapeHtml(schedule.service_type || 'N/A')}</td>
+                            <td>${escapeHtml(schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A')}</td>
+                            <td>${escapeHtml(schedule.notes ? (schedule.notes.length > 30 ? schedule.notes.substring(0, 30) + '...' : schedule.notes) : 'N/A')}</td>
+                            <td>${formatDateTime(completedAt)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    tbody.innerHTML = `<tr><td colspan="10" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
+                });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function exportCompletedSchedulesPDF() {
+            if (currentCompletedSchedules.length === 0) {
+                alert('No completed schedules to export.');
+                return;
+            }
+            
+            // Load logo image first
+            const logoPath = '../img/logo.jpg';
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            
+            img.onload = function() {
+                try {
+                    const { jsPDF } = window.jspdf;
+                    
+                    if (!jsPDF) {
+                        throw new Error('jsPDF not loaded properly. Please refresh the page.');
+                    }
+                    
+                    const doc = new jsPDF('landscape', 'mm', 'letter');
+                    doc.setFont('helvetica');
+                    
+                    // Add logo to header
+                    try {
+                        // Calculate logo dimensions (maintaining aspect ratio)
+                        const maxLogoWidth = 40; // Maximum width in mm
+                        const maxLogoHeight = 20; // Maximum height in mm
+                        let logoWidth = this.width * 0.264583; // Convert pixels to mm (1px = 0.264583mm at 96dpi)
+                        let logoHeight = this.height * 0.264583;
+                        
+                        // Scale down if too large
+                        if (logoWidth > maxLogoWidth) {
+                            const scale = maxLogoWidth / logoWidth;
+                            logoWidth = maxLogoWidth;
+                            logoHeight = logoHeight * scale;
+                        }
+                        if (logoHeight > maxLogoHeight) {
+                            const scale = maxLogoHeight / logoHeight;
+                            logoHeight = maxLogoHeight;
+                            logoWidth = logoWidth * scale;
+                        }
+                        
+                        doc.addImage(img, 'JPEG', 20, 10, logoWidth, logoHeight);
+                    } catch (logoError) {
+                        console.warn('Could not add logo:', logoError);
+                        // Continue without logo if there's an error
+                    }
+                    
+                    // Add header text (adjusted position to account for logo)
+                    doc.setFontSize(18);
+                    doc.setTextColor(40, 40, 40);
+                    const logoWidthUsed = 50; // Space reserved for logo
+                    doc.text('Completed Installation Schedules', 20 + logoWidthUsed, 20);
+                    
+                    doc.setFontSize(12);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text('Installer: ' + currentInstallerName, 20 + logoWidthUsed, 30);
+                    doc.text('Total Completed: ' + currentCompletedSchedules.length, 20 + logoWidthUsed, 36);
+                    doc.text('Generated on: ' + new Date().toLocaleString(), 20 + logoWidthUsed, 42);
+                    
+                    // Prepare table data
+                    const tableData = currentCompletedSchedules.map(schedule => {
+                        const scheduleDate = schedule.schedule_date ? new Date(schedule.schedule_date) : null;
+                        const scheduleTime = schedule.schedule_time ? schedule.schedule_time.substring(0, 5) : 'N/A';
+                        const completedAt = schedule.completed_at ? new Date(schedule.completed_at) : null;
+                        
+                        const formatDate = (date) => {
+                            if (!date || isNaN(date.getTime())) return 'N/A';
+                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        };
+                        
+                        return [
+                            schedule.id.toString(),
+                            schedule.customer_name || 'N/A',
+                            schedule.contact_number || 'N/A',
+                            schedule.address ? (schedule.address.length > 40 ? schedule.address.substring(0, 40) + '...' : schedule.address) : 'N/A',
+                            formatDate(scheduleDate),
+                            scheduleTime,
+                            schedule.service_type || 'N/A',
+                            schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A',
+                            formatDate(completedAt)
+                        ];
+                    });
+                    
+                    doc.autoTable({
+                        startY: 50,
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Completed Date']],
+                        body: tableData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [155, 89, 182], textColor: 255 },
+                        styles: { fontSize: 7, cellPadding: 2 },
+                        columnStyles: {
+                            0: { halign: 'center', cellWidth: 15 },
+                            4: { halign: 'center' },
+                            5: { halign: 'center' },
+                            8: { halign: 'center' }
+                        },
+                        margin: { top: 50 }
+                    });
+                    
+                    // Add footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 150, 150);
+                        doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                        doc.text('Generated by AUS Installation System', 20, doc.internal.pageSize.height - 10);
+                    }
+                    
+                    const fileName = 'Completed_Schedules_' + currentInstallerName.replace(/[^a-z0-9]/gi, '_') + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+                    doc.save(fileName);
+                    
+                    alert('PDF exported successfully!');
+                } catch (error) {
+                    console.error('PDF Export Error:', error);
+                    alert('Error exporting PDF: ' + error.message);
+                }
+            };
+            
+            img.onerror = function() {
+                // If logo fails to load, generate PDF without logo
+                console.warn('Logo image could not be loaded. Generating PDF without logo.');
+                try {
+                    const { jsPDF } = window.jspdf;
+                    
+                    if (!jsPDF) {
+                        throw new Error('jsPDF not loaded properly. Please refresh the page.');
+                    }
+                    
+                    const doc = new jsPDF('landscape', 'mm', 'letter');
+                    doc.setFont('helvetica');
+                    
+                    // Add header without logo
+                    doc.setFontSize(18);
+                    doc.setTextColor(40, 40, 40);
+                    doc.text('Completed Installation Schedules', 20, 20);
+                    
+                    doc.setFontSize(12);
+                    doc.setTextColor(100, 100, 100);
+                    doc.text('Installer: ' + currentInstallerName, 20, 30);
+                    doc.text('Total Completed: ' + currentCompletedSchedules.length, 20, 36);
+                    doc.text('Generated on: ' + new Date().toLocaleString(), 20, 42);
+                    
+                    // Prepare table data
+                    const tableData = currentCompletedSchedules.map(schedule => {
+                        const scheduleDate = schedule.schedule_date ? new Date(schedule.schedule_date) : null;
+                        const scheduleTime = schedule.schedule_time ? schedule.schedule_time.substring(0, 5) : 'N/A';
+                        const completedAt = schedule.completed_at ? new Date(schedule.completed_at) : null;
+                        
+                        const formatDate = (date) => {
+                            if (!date || isNaN(date.getTime())) return 'N/A';
+                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        };
+                        
+                        return [
+                            schedule.id.toString(),
+                            schedule.customer_name || 'N/A',
+                            schedule.contact_number || 'N/A',
+                            schedule.address ? (schedule.address.length > 40 ? schedule.address.substring(0, 40) + '...' : schedule.address) : 'N/A',
+                            formatDate(scheduleDate),
+                            scheduleTime,
+                            schedule.service_type || 'N/A',
+                            schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A',
+                            formatDate(completedAt)
+                        ];
+                    });
+                    
+                    doc.autoTable({
+                        startY: 50,
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Completed Date']],
+                        body: tableData,
+                        theme: 'grid',
+                        headStyles: { fillColor: [155, 89, 182], textColor: 255 },
+                        styles: { fontSize: 7, cellPadding: 2 },
+                        columnStyles: {
+                            0: { halign: 'center', cellWidth: 15 },
+                            4: { halign: 'center' },
+                            5: { halign: 'center' },
+                            8: { halign: 'center' }
+                        },
+                        margin: { top: 50 }
+                    });
+                    
+                    // Add footer
+                    const pageCount = doc.internal.getNumberOfPages();
+                    for (let i = 1; i <= pageCount; i++) {
+                        doc.setPage(i);
+                        doc.setFontSize(8);
+                        doc.setTextColor(150, 150, 150);
+                        doc.text('Page ' + i + ' of ' + pageCount, doc.internal.pageSize.width - 30, doc.internal.pageSize.height - 10);
+                        doc.text('Generated by AUS Installation System', 20, doc.internal.pageSize.height - 10);
+                    }
+                    
+                    const fileName = 'Completed_Schedules_' + currentInstallerName.replace(/[^a-z0-9]/gi, '_') + '_' + new Date().toISOString().split('T')[0] + '.pdf';
+                    doc.save(fileName);
+                    
+                    alert('PDF exported successfully!');
+                } catch (error) {
+                    console.error('PDF Export Error:', error);
+                    alert('Error exporting PDF: ' + error.message);
+                }
+            };
+            
+            // Set the image source to load it
+            img.src = logoPath;
         }
     </script>
 </body> 
