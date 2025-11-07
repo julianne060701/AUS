@@ -1680,15 +1680,14 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 <select class="form-control" id="products_to_install_dropdown" name="products_to_install_dropdown">
                                     <option value="">Select Product</option>
                                     <?php
-                                    // Fetch products that HAVE been sold (quantity sold > 0)
-                                    $products_query = "SELECT DISTINCT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
-                                                      COALESCE(SUM(sales.quantity_sold), 0) as total_sold
+                                    // Fetch products that HAVE been sold (total_quantity_sold > 0) from summary table
+                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
+                                                      COALESCE(pqs.total_quantity_sold, 0) as total_sold
                                                       FROM products p 
                                                       LEFT JOIN category c ON p.category_id = c.category_id 
                                                       LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                                      LEFT JOIN aircon_sales sales ON sales.product_id = p.id
-                                                      GROUP BY p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name
-                                                      HAVING total_sold > 0
+                                                      LEFT JOIN product_quantity_sold_summary pqs ON pqs.product_id = p.id
+                                                      WHERE COALESCE(pqs.total_quantity_sold, 0) > 0
                                                       ORDER BY p.product_name ASC";
                                     $products_result = mysqli_query($conn, $products_query);
                                     
@@ -1866,15 +1865,14 @@ $month_name = date('F', mktime(0, 0, 0, $current_month, 1, $current_year));
                                 <select class="form-control" id="edit_products_to_install_dropdown" name="products_to_install_dropdown">
                                     <option value="">Select Product</option>
                                     <?php
-                                    // Fetch products that HAVE been sold (quantity sold > 0)
-                                    $products_query = "SELECT DISTINCT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
-                                                      COALESCE(SUM(sales.quantity_sold), 0) as total_sold
+                                    // Fetch products that HAVE been sold (total_quantity_sold > 0) from summary table
+                                    $products_query = "SELECT p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name,
+                                                      COALESCE(pqs.total_quantity_sold, 0) as total_sold
                                                       FROM products p 
                                                       LEFT JOIN category c ON p.category_id = c.category_id 
                                                       LEFT JOIN brands b ON p.brand_id = b.brand_id 
-                                                      LEFT JOIN aircon_sales sales ON sales.product_id = p.id
-                                                      GROUP BY p.id, p.product_name, p.capacity, p.quantity, c.category_name, b.brand_name
-                                                      HAVING total_sold > 0
+                                                      LEFT JOIN product_quantity_sold_summary pqs ON pqs.product_id = p.id
+                                                      WHERE COALESCE(pqs.total_quantity_sold, 0) > 0
                                                       ORDER BY p.product_name ASC";
                                     $products_result = mysqli_query($conn, $products_query);
                                     

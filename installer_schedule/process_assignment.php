@@ -47,68 +47,39 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
               VALUES ('$installer_name', '$customer_name', '$contact_number', '$address', '$schedule_date', '$schedule_time', '$service_type', '$products_to_install', '$quantity_to_install', '$notes', '$status')";
     
     if (mysqli_query($conn, $query)) {
-        // If service type is Installation, subtract from quantity sold
+        // If service type is Installation, update summary table
         if ($service_type === 'Installation') {
             // Get product ID from products_to_install (assuming it contains product ID)
             $product_id = (int)$products_to_install;
             
-            // Check if product exists and has enough quantity sold to subtract from
-            $check_sales_query = "SELECT SUM(quantity_sold) as total_sold FROM aircon_sales WHERE product_id = $product_id";
-            $sales_result = mysqli_query($conn, $check_sales_query);
+            // Check if product has enough total_quantity_sold in summary table
+            $check_summary_query = "SELECT total_quantity_sold FROM product_quantity_sold_summary WHERE product_id = $product_id";
+            $summary_result = mysqli_query($conn, $check_summary_query);
             
-            if ($sales_result && mysqli_num_rows($sales_result) > 0) {
-                $sales_data = mysqli_fetch_assoc($sales_result);
-                $total_sold = $sales_data['total_sold'] ?? 0;
+            if ($summary_result && mysqli_num_rows($summary_result) > 0) {
+                $summary_data = mysqli_fetch_assoc($summary_result);
+                $total_sold = $summary_data['total_quantity_sold'] ?? 0;
                 
                 if ($total_sold >= $quantity_to_install) {
-                    // Find sale records with quantity sold > 0, ordered by sale_id DESC
-                    $find_sale_query = "SELECT sale_id, quantity_sold FROM aircon_sales WHERE product_id = $product_id AND quantity_sold > 0 ORDER BY sale_id DESC";
-                    $find_result = mysqli_query($conn, $find_sale_query);
+                    // Update product_quantity_sold_summary table:
+                    // 1. Subtract quantity_to_install from total_quantity_sold
+                    // 2. Add quantity_to_install to total_quantity_to_install
+                    $update_summary_query = "INSERT INTO product_quantity_sold_summary 
+                                              (product_id, total_quantity_sold, total_quantity_to_install, last_updated) 
+                                              VALUES ($product_id, $total_sold - $quantity_to_install, $quantity_to_install, NOW())
+                                              ON DUPLICATE KEY UPDATE 
+                                              total_quantity_sold = total_quantity_sold - $quantity_to_install,
+                                              total_quantity_to_install = total_quantity_to_install + $quantity_to_install,
+                                              last_updated = NOW()";
                     
-                    if ($find_result && mysqli_num_rows($find_result) > 0) {
-                        $remaining_to_subtract = $quantity_to_install;
-                        $success = true;
-                        
-                        // Loop through sale records and subtract quantities
-                        while ($remaining_to_subtract > 0 && $sale_record = mysqli_fetch_assoc($find_result)) {
-                            $sale_id = $sale_record['sale_id'];
-                            $current_sold = $sale_record['quantity_sold'];
-                            
-                            if ($current_sold >= $remaining_to_subtract) {
-                                // This record has enough quantity
-                                $new_quantity_sold = $current_sold - $remaining_to_subtract;
-                                $update_sale_query = "UPDATE aircon_sales SET quantity_sold = $new_quantity_sold WHERE sale_id = $sale_id";
-                                
-                                if (!mysqli_query($conn, $update_sale_query)) {
-                                    $success = false;
-                                    break;
-                                }
-                                $remaining_to_subtract = 0;
-                            } else {
-                                // This record doesn't have enough, subtract what it has
-                                $update_sale_query = "UPDATE aircon_sales SET quantity_sold = 0 WHERE sale_id = $sale_id";
-                                
-                                if (!mysqli_query($conn, $update_sale_query)) {
-                                    $success = false;
-                                    break;
-                                }
-                                $remaining_to_subtract -= $current_sold;
-                            }
-                        }
-                        
-                        if ($success && $remaining_to_subtract == 0) {
-                            // Commit transaction
-                            mysqli_commit($conn);
-                            echo json_encode(['success' => true, 'message' => 'Schedule assigned and quantity sold updated successfully!']);
-                        } else {
-                            // Rollback transaction
-                            mysqli_rollback($conn);
-                            echo json_encode(['success' => false, 'message' => 'Error updating quantity sold: ' . mysqli_error($conn)]);
-                        }
+                    if (mysqli_query($conn, $update_summary_query)) {
+                        // Commit transaction
+                        mysqli_commit($conn);
+                        echo json_encode(['success' => true, 'message' => 'Schedule assigned and quantity updated successfully!']);
                     } else {
                         // Rollback transaction
                         mysqli_rollback($conn);
-                        echo json_encode(['success' => false, 'message' => 'No sale records with quantity found for this product.']);
+                        echo json_encode(['success' => false, 'message' => 'Error updating quantity summary: ' . mysqli_error($conn)]);
                     }
                 } else {
                     // Rollback transaction
@@ -118,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             } else {
                 // Rollback transaction
                 mysqli_rollback($conn);
-                echo json_encode(['success' => false, 'message' => 'No sales records found for this product.']);
+                echo json_encode(['success' => false, 'message' => 'No quantity sold found for this product in summary table.']);
             }
         } else {
             // For non-installation services, just commit the schedule

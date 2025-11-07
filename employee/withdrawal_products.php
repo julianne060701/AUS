@@ -63,7 +63,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 throw new Exception("Failed to insert stock out record: " . $insert_sale->error);
             }
 
-            // Step 3: Update inventory
+            // Step 3: Update product_quantity_sold_summary table
+            // Insert or update the summary record for this product
+            $update_summary = $conn->prepare("INSERT INTO product_quantity_sold_summary 
+                                               (product_id, total_quantity_sold, total_quantity_to_install, last_updated) 
+                                               VALUES (?, ?, 0, NOW())
+                                               ON DUPLICATE KEY UPDATE 
+                                               total_quantity_sold = total_quantity_sold + ?,
+                                               last_updated = NOW()");
+            $update_summary->bind_param("iii", $product_id, $quantity_input, $quantity_input);
+            
+            if (!$update_summary->execute()) {
+                throw new Exception("Failed to update quantity sold summary: " . $update_summary->error);
+            }
+            $update_summary->close();
+
+            // Step 4: Update inventory
             $new_stock = $current_stock - $quantity_input;
             $new_stock = max(0, $new_stock);
 
