@@ -6,3 +6,4 @@
 ALTER TABLE `installer_schedules` 
 ADD COLUMN `cancel_note` text DEFAULT NULL AFTER `notes`;
 
+
