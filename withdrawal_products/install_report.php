@@ -469,13 +469,12 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <th onclick="sortInstallerTable(3)">In Progress <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortInstallerTable(4)">Completed <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortInstallerTable(5)">Cancelled <i class="fas fa-sort"></i></th>
-                                                                    <th onclick="sortInstallerTable(6)">Completion Rate <i class="fas fa-sort"></i></th>
                                                                     <th>Actions</th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 <?php if(empty($installer_data)): ?>
-                                                                <tr><td colspan="8" class="text-center">No installer data available</td></tr>
+                                                                <tr><td colspan="7" class="text-center">No installer data available</td></tr>
                                                                 <?php else: ?>
                                                                 <?php foreach($installer_data as $row): ?>
                                                                 <tr>
@@ -485,7 +484,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <td><span class="badge badge-in-progress"><?= number_format($row['in_progress_count']) ?></span></td>
                                                                     <td><span class="badge badge-completed"><?= number_format($row['completed_count']) ?></span></td>
                                                                     <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
-                                                                    <td><?= $row['total_schedules'] > 0 ? number_format(($row['completed_count'] / $row['total_schedules']) * 100, 1) : 0 ?>%</td>
                                                                     <td>
                                                                         <button type="button" class="btn btn-sm btn-info" onclick="viewCompletedSchedules('<?= htmlspecialchars($row['installer_name'], ENT_QUOTES) ?>')" title="View Schedules">
                                                                             <i class="fas fa-eye"></i> View
@@ -522,12 +520,11 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <th onclick="sortServiceTable(3)">In Progress <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortServiceTable(4)">Completed <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortServiceTable(5)">Cancelled <i class="fas fa-sort"></i></th>
-                                                                    <th onclick="sortServiceTable(6)">Completion Rate <i class="fas fa-sort"></i></th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody>
                                                                 <?php if(empty($service_data)): ?>
-                                                                <tr><td colspan="7" class="text-center">No service data available</td></tr>
+                                                                <tr><td colspan="6" class="text-center">No service data available</td></tr>
                                                                 <?php else: ?>
                                                                 <?php foreach($service_data as $row): ?>
                                                                 <tr>
@@ -537,7 +534,6 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <td><span class="badge badge-in-progress"><?= number_format($row['in_progress_count']) ?></span></td>
                                                                     <td><span class="badge badge-completed"><?= number_format($row['completed_count']) ?></span></td>
                                                                     <td><span class="badge badge-cancelled"><?= number_format($row['cancelled_count']) ?></span></td>
-                                                                    <td><?= $row['total_count'] > 0 ? number_format(($row['completed_count'] / $row['total_count']) * 100, 1) : 0 ?>%</td>
                                                                 </tr>
                                                                 <?php endforeach; ?>
                                                                 <?php endif; ?>

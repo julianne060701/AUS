@@ -25,6 +25,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         exit();
     }
 
+    // Single insert path (optional serial, quantity as provided)
     // Check if serial number already exists (if provided)
     if (!empty($serial_number)) {
         $checkStmt = $conn->prepare("SELECT id FROM products WHERE serial_number = ?");
@@ -36,7 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $_SESSION['error'] = "Serial number '$serial_number' already exists! Please use a unique serial number.";
             $checkStmt->close();
             $conn->close();
-            header("Location: inventory.php");
+            header("Location: product.php");
             exit();
         }
         $checkStmt->close();
@@ -44,8 +45,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     // Prepare and execute insert query
     $stmt = $conn->prepare("INSERT INTO products 
-                           (product_name, serial_number, brand_id, capacity, buying_price, selling_price, quantity, category_id, created_at) 
-                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW())");
+                           (product_name, serial_number, brand_id, capacity, buying_price, selling_price, quantity, category_id, created_at, updated_at) 
+                           VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())");
     
     $stmt->bind_param("ssissdii", 
         $product_name, 

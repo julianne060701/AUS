@@ -139,6 +139,7 @@ include '../config/conn.php';
                         <th>Category</th>
                         <th>Stock</th>
                         <th>Date</th>
+                        <th>Updated</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -174,8 +175,9 @@ include '../config/conn.php';
                             <td>" . htmlspecialchars($row['category_name']) . "</td>
                             <td class='" . $stockClass . "'>" . $row['quantity'] . "</td>
                             <td>" . $createdDate . "</td>
+                            <td>" . (!empty($row['updated_at']) ? date("M d, Y h:i A", strtotime($row['updated_at'])) : '—') . "</td>
                             <td>
-                                <button class='btn btn-sm btn-warning edit-btn' 
+                                <button class='btn btn-sm btn-warning edit-btn me-1' 
                                         data-id='" . $row['id'] . "'
                                         data-name='" . htmlspecialchars($row['product_name']) . "'
                                         data-serial='" . htmlspecialchars($row['serial_number']) . "'
@@ -186,14 +188,25 @@ include '../config/conn.php';
                                         data-category-id='" . $row['category_id'] . "'
                                         data-brand-id='" . $row['brand_id'] . "'
                                         data-bs-toggle='modal' 
-                                        data-bs-target='#editProductModal'>
+                                        data-bs-target='#editProductModal'
+                                        title='Edit' data-bs-toggle='tooltip'>
                                     <i class='fas fa-edit'></i>
+                                </button>
+                                <button class='btn btn-sm btn-info reorder-btn me-1' 
+                                        data-id='" . $row['id'] . "'
+                                        data-name='" . htmlspecialchars($row['product_name']) . "'
+                                        data-current-qty='" . $row['quantity'] . "'
+                                        data-bs-toggle='modal' 
+                                        data-bs-target='#reorderProductModal'
+                                        title='Reorder' data-bs-toggle='tooltip'>
+                                    <i class='fas fa-shopping-basket'></i>
                                 </button>
                                 <button class='btn btn-sm btn-danger delete-btn' 
                                         data-id='" . $row['id'] . "'
                                         data-name='" . htmlspecialchars($row['product_name']) . "'
                                         data-bs-toggle='modal' 
-                                        data-bs-target='#deleteProductModal'>
+                                        data-bs-target='#deleteProductModal'
+                                        title='Delete' data-bs-toggle='tooltip'>
                                     <i class='fas fa-trash'></i>
                                 </button>
                             </td>
@@ -428,6 +441,38 @@ include '../config/conn.php';
       </div>
     </div>
 
+    <!-- Reorder Product Modal -->
+    <div class="modal fade" id="reorderProductModal" tabindex="-1" aria-labelledby="reorderProductModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form action="reorder_product.php" method="POST" class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="reorderProductModalLabel">Reorder Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="reorder_product_id" name="product_id">
+            <div class="mb-2">
+                <label class="form-label">Product</label>
+                <input type="text" id="reorder_product_name" class="form-control" readonly>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Current Stock</label>
+                <input type="number" id="reorder_current_qty" class="form-control" readonly>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Add Quantity <span class="text-danger">*</span></label>
+                <input type="number" name="add_quantity" id="reorder_add_qty" class="form-control" min="1" required>
+                <small class="text-muted">Enter how many units to add to stock.</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Apply</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -447,29 +492,29 @@ $(document).ready(function () {
         "ordering": true,
         "searching": true,
         "responsive": true,
-        "order": [[5, 'asc'], [2, 'asc'], [0, 'asc']], // Sort by category, brand, product name
+        "order": [[8, 'desc'], [7, 'desc']], // Latest updated first, then latest created
         "columnDefs": [
             { "orderable": false, "targets": -1 } // Disable sorting on Action column
         ]
     });
 
-    // Category filter functionality
+    // Category filter functionality (Category is column index 5)
     $('#categoryFilter').on('change', function() {
         var selectedCategory = $(this).val();
         
         if (selectedCategory === '') {
-            table.column(5).search('').draw(); // Column 5 is Category
+            table.column(5).search('').draw();
         } else {
             table.column(5).search('^' + selectedCategory + '$', true, false).draw();
         }
     });
 
-    // Brand filter functionality
+    // Brand filter functionality (Brand is column index 2)
     $('#brandFilter').on('change', function() {
         var selectedBrand = $(this).val();
         
         if (selectedBrand === '') {
-            table.column(2).search('').draw(); // Column 2 is Brand
+            table.column(2).search('').draw();
         } else {
             table.column(2).search(selectedBrand, true, false).draw();
         }
@@ -480,6 +525,7 @@ $(document).ready(function () {
         $('#categoryFilter').val('');
         $('#brandFilter').val('');
         table.columns().search('').draw();
+        table.order([[8, 'desc'], [7, 'desc']]).draw(); // restore latest-first
     });
 
     // Edit button click handler
@@ -515,6 +561,41 @@ $(document).ready(function () {
         $('#delete_product_id').val(id);
         $('#delete_product_name').text(name);
     });
+
+    // Reorder button click handler
+    $(document).on('click', '.reorder-btn', function() {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        var currentQty = $(this).data('current-qty');
+
+        $('#reorder_product_id').val(id);
+        $('#reorder_product_name').val(name);
+        $('#reorder_current_qty').val(currentQty);
+        $('#reorder_add_qty').val('');
+    });
+
+    // Reset Reorder modal on hide
+    var reorderModalEl = document.getElementById('reorderProductModal');
+    if (reorderModalEl) {
+        reorderModalEl.addEventListener('hidden.bs.modal', function () {
+            $('#reorder_product_id').val('');
+            $('#reorder_product_name').val('');
+            $('#reorder_current_qty').val('');
+            $('#reorder_add_qty').val('');
+        });
+    }
+
+    // Enable Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Improve search input placeholder
+    var dtFilter = $('#dataTable_filter input[type=\"search\"]');
+    if (dtFilter.length) {
+        dtFilter.attr('placeholder', 'Search products...');
+    }
 
     // Auto-dismiss alerts after 5 seconds
     setTimeout(function() {
