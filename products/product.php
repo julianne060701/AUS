@@ -347,23 +347,50 @@ include '../config/conn.php';
     <!-- Add Product Modal -->
     <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg">
-        <form action="add_products.php" method="POST" class="modal-content">
+        <form id="mainAddProductForm" action="add_products.php" method="POST" class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
+            <input type="hidden" id="main_existing_product_id" name="product_id" value="">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label class="form-label">Select Existing Product (to reorder)</label>
+                  <select id="main_existing_product_select" class="form-select">
+                    <option value="">-- New Product --</option>
+                    <?php
+                    $allProductsRes = $conn->query("
+                      SELECT p.id, p.product_name, b.brand_name, c.category_name
+                      FROM products p
+                      LEFT JOIN brands b ON p.brand_id = b.brand_id
+                      LEFT JOIN category c ON p.category_id = c.category_id
+                      ORDER BY p.product_name ASC
+                    ");
+                    while ($p = $allProductsRes->fetch_assoc()) {
+                      $label = htmlspecialchars($p['product_name']);
+                      if (!empty($p['brand_name'])) $label .= ' — ' . htmlspecialchars($p['brand_name']);
+                      if (!empty($p['category_name'])) $label .= ' (' . htmlspecialchars($p['category_name']) . ')';
+                      echo "<option value='" . $p['id'] . "'>" . $label . "</option>";
+                    }
+                    ?>
+                  </select>
+                  <small class="text-muted">Choose a product to reorder; details will auto-fill and become read-only.</small>
+                </div>
+              </div>
+            </div>
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Product Name <span class="text-danger">*</span></label>
-                  <input type="text" name="product_name" class="form-control" required>
+                  <input type="text" id="main_product_name" name="product_name" class="form-control" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Serial Number</label>
-                  <input type="text" name="serial_number" class="form-control" placeholder="e.g. SN123456 (Optional)">
+                  <input type="text" id="main_serial_number" name="serial_number" class="form-control" placeholder="e.g. SN123456 (Optional)">
                   <small class="text-muted">Leave blank if not applicable</small>
                 </div>
               </div>
@@ -372,7 +399,7 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Brand</label>
-                  <select name="brand_id" class="form-select">
+                  <select id="main_brand_id" name="brand_id" class="form-select">
                     <option value="">-- Select Brand (Optional) --</option>
                     <?php
                     $brandRes = $conn->query("SELECT * FROM brands ORDER BY brand_name");
@@ -386,7 +413,7 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Capacity <span class="text-danger">*</span></label>
-                  <input type="text" name="capacity" class="form-control" placeholder="e.g. 1.5L or 4.0/3tr" required>
+                  <input type="text" id="main_capacity" name="capacity" class="form-control" placeholder="e.g. 1.5L or 4.0/3tr" required>
                 </div>
               </div>
             </div>
@@ -394,13 +421,13 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Buying Price <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" name="buying_price" class="form-control" placeholder="0.00" required>
+                  <input type="number" step="0.01" id="main_buying_price" name="buying_price" class="form-control" placeholder="0.00" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Selling Price (SRP) <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" name="selling_price" class="form-control" placeholder="0.00" required>
+                  <input type="number" step="0.01" id="main_selling_price" name="selling_price" class="form-control" placeholder="0.00" required>
                 </div>
               </div>
             </div>
@@ -408,13 +435,13 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                  <input type="number" name="quantity" class="form-control" min="0" required>
+                  <input type="number" id="main_quantity" name="quantity" class="form-control" min="0" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Category <span class="text-danger">*</span></label>
-                  <select name="category_id" class="form-select" required>
+                  <select id="main_category_id" name="category_id" class="form-select" required>
                     <option value="">-- Select Category --</option>
                     <?php
                     $catRes = $conn->query("SELECT * FROM category ORDER BY category_name");
@@ -423,6 +450,20 @@ include '../config/conn.php';
                     }
                     ?>
                   </select>
+                </div>
+              </div>
+            </div>
+            <div class="row d-none" id="main_reorder_row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Add Quantity (Reorder) <span class="text-danger">*</span></label>
+                  <input type="number" id="main_add_quantity" name="add_quantity" class="form-control" min="1">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Current Stock</label>
+                  <input type="number" id="main_current_qty" class="form-control" readonly>
                 </div>
               </div>
             </div>
@@ -577,6 +618,80 @@ include '../config/conn.php';
             ]
         });
 
+        // Add Product modal: toggle between New vs Reorder based on existing product dropdown
+        function setMainReorderMode(enabled) {
+            var form = $('#mainAddProductForm');
+            if (enabled) {
+                form.attr('action', 'reorder_product.php');
+                $('#main_reorder_row').removeClass('d-none');
+                $('#main_add_quantity').attr('required', true);
+                $('#main_product_name, #main_serial_number, #main_capacity, #main_buying_price, #main_selling_price').attr('readonly', true);
+                $('#main_brand_id, #main_category_id').attr('disabled', true);
+                $('#main_quantity').attr('disabled', true).attr('required', false);
+            } else {
+                form.attr('action', 'add_products.php');
+                $('#main_reorder_row').addClass('d-none');
+                $('#main_add_quantity').removeAttr('required').val('');
+                $('#main_current_qty').val('');
+                $('#main_product_name, #main_serial_number, #main_capacity, #main_buying_price, #main_selling_price').attr('readonly', false);
+                $('#main_brand_id, #main_category_id').attr('disabled', false);
+                $('#main_quantity').attr('disabled', false).attr('required', true);
+            }
+        }
+
+        // Reset modal on hide
+        var mainAddModalEl = document.getElementById('addProductModal');
+        if (mainAddModalEl) {
+            mainAddModalEl.addEventListener('hidden.bs.modal', function () {
+                $('#main_existing_product_select').val('');
+                $('#main_existing_product_id').val('');
+                setMainReorderMode(false);
+                $('#main_product_name').val('');
+                $('#main_serial_number').val('');
+                $('#main_capacity').val('');
+                $('#main_buying_price').val('');
+                $('#main_selling_price').val('');
+                $('#main_quantity').val('');
+                $('#main_brand_id').val('');
+                $('#main_category_id').val('');
+            });
+        }
+
+        // When selecting an existing product, fetch and lock details
+        $('#main_existing_product_select').on('change', function () {
+            var productId = $(this).val();
+            if (!productId) {
+                $('#main_existing_product_id').val('');
+                setMainReorderMode(false);
+                return;
+            }
+            $('#main_existing_product_id').val(productId);
+            setMainReorderMode(true);
+            $.ajax({
+                url: 'get_product_details.php',
+                type: 'GET',
+                data: { id: productId },
+                dataType: 'json',
+                success: function(resp) {
+                    if (resp && resp.success && resp.product) {
+                        var p = resp.product;
+                        $('#main_product_name').val(p.product_name || '');
+                        $('#main_serial_number').val(p.serial_number || '');
+                        $('#main_capacity').val(p.capacity || '');
+                        $('#main_buying_price').val(p.buying_price || '');
+                        $('#main_selling_price').val(p.selling_price || '');
+                        $('#main_brand_id').val(p.brand_id || '');
+                        $('#main_category_id').val(p.category_id || '');
+                        $('#main_current_qty').val(p.quantity || '');
+                    } else {
+                        alert('Could not load product details.');
+                    }
+                },
+                error: function() {
+                    alert('Failed to load product details.');
+                }
+            });
+        });
         // Category filter functionality (Category is column index 5)
         $('#categoryFilter').on('change', function() {
             var selectedCategory = $(this).val();
