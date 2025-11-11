@@ -61,12 +61,26 @@ if(!empty($params)) {
     $summary = $result->fetch_assoc();
 }
 
+// Build install query with proper alias handling for date_condition
+$install_where = $date_condition;
+if (!empty($install_where)) {
+    // Replace column references with alias for the joined query
+    $install_where = str_replace('schedule_date', 'sched.schedule_date', $install_where);
+    $install_where = str_replace('installer_name', 'sched.installer_name', $install_where);
+    $install_where = str_replace('status', 'sched.status', $install_where);
+}
+
 $install_query = "SELECT 
-    id, installer_name, customer_name, contact_number, address, schedule_date,
-    schedule_time, service_type, products_to_install, notes, status, cancel_note, created_at, updated_at
-FROM installer_schedules 
-$date_condition 
-ORDER BY schedule_date DESC, schedule_time DESC";
+    sched.id, sched.installer_name, sched.customer_name, sched.contact_number, sched.address, sched.schedule_date,
+    sched.schedule_time, sched.service_type, sched.products_to_install, sched.quantity_to_install, sched.notes, sched.status, sched.cancel_note, sched.created_at, sched.updated_at,
+    COALESCE(p.product_name, sched.products_to_install) as product_name
+FROM installer_schedules sched
+LEFT JOIN products p ON sched.products_to_install IS NOT NULL 
+    AND sched.products_to_install != '' 
+    AND sched.products_to_install REGEXP '^[0-9]+$' 
+    AND CAST(sched.products_to_install AS UNSIGNED) = p.id
+$install_where 
+ORDER BY sched.schedule_date DESC, sched.schedule_time DESC";
 
 if(!empty($params)) {
     $stmt = $conn->prepare($install_query);
@@ -612,13 +626,14 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                     <th onclick="sortTable(7)">Service Type <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortTable(8)">Status <i class="fas fa-sort"></i></th>
                                                                     <th onclick="sortTable(9)">Products <i class="fas fa-sort"></i></th>
-                                                                    <th onclick="sortTable(10)">Notes <i class="fas fa-sort"></i></th>
-                                                                    <th onclick="sortTable(11)">Created <i class="fas fa-sort"></i></th>
+                                                                    <th onclick="sortTable(10)">Quantity <i class="fas fa-sort"></i></th>
+                                                                    <th onclick="sortTable(11)">Notes <i class="fas fa-sort"></i></th>
+                                                                    <th onclick="sortTable(12)">Created <i class="fas fa-sort"></i></th>
                                                                 </tr>
                                                             </thead>
                                                             <tbody id="detailedTableBody">
                                                                 <?php if(empty($install_data)): ?>
-                                                                <tr><td colspan="12" class="text-center">No installation data available</td></tr>
+                                                                <tr><td colspan="13" class="text-center">No installation data available</td></tr>
                                                                 <?php else: ?>
                                                                 <?php foreach($install_data as $install): ?>
                                                                 <tr>
@@ -635,7 +650,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                                                             <?= htmlspecialchars($install['status']) ?>
                                                                         </span>
                                                                     </td>
-                                                                    <td><?= htmlspecialchars(substr($install['products_to_install'], 0, 30)) ?><?= strlen($install['products_to_install']) > 30 ? '...' : '' ?></td>
+                                                                    <td><?= htmlspecialchars(substr($install['product_name'] ?? $install['products_to_install'], 0, 30)) ?><?= strlen($install['product_name'] ?? $install['products_to_install']) > 30 ? '...' : '' ?></td>
+                                                                    <td><?= htmlspecialchars($install['quantity_to_install'] ?? '1') ?></td>
                                                                     <td><?= htmlspecialchars(substr($install['notes'], 0, 30)) ?><?= strlen($install['notes']) > 30 ? '...' : '' ?></td>
                                                                     <td><?= date('M j, Y', strtotime($install['created_at'])) ?></td>
                                                                 </tr>
@@ -697,6 +713,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                                     <th>Schedule Time</th>
                                     <th>Service Type</th>
                                     <th>Products</th>
+                                    <th>Quantity to Install</th>
                                     <th>Notes</th>
                                     <th>Status</th>
                                     <th>Cancel Note</th>
@@ -705,7 +722,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             </thead>
                             <tbody id="completedSchedulesTableBody">
                                 <tr>
-                                    <td colspan="11" class="text-center">
+                                    <td colspan="13" class="text-center">
                                         <div class="spinner-border text-primary" role="status">
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
@@ -1016,19 +1033,24 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                         doc.setTextColor(40, 40, 40);
                         doc.text('Detailed Installation Schedules (First 50 Records)', 20, currentY);
                         
-                        const installData = <?= json_encode(array_slice($install_data, 0, 50)) ?>.map(item => [
-                            item.id || 'N/A',
-                            item.installer_name || 'N/A',
-                            item.customer_name || 'N/A',
-                            item.contact_number || 'N/A',
-                            new Date(item.schedule_date).toLocaleDateString(),
-                            item.service_type || 'N/A',
-                            item.status || 'N/A'
-                        ]);
+                        const installData = <?= json_encode(array_slice($install_data, 0, 50)) ?>.map(item => {
+                            const productDisplay = item.product_name || item.products_to_install || 'N/A';
+                            return [
+                                item.id || 'N/A',
+                                item.installer_name || 'N/A',
+                                item.customer_name || 'N/A',
+                                item.contact_number || 'N/A',
+                                new Date(item.schedule_date).toLocaleDateString(),
+                                item.service_type || 'N/A',
+                                productDisplay.length > 25 ? productDisplay.substring(0, 25) + '...' : productDisplay,
+                                item.status || 'N/A',
+                                item.quantity_to_install || '1'
+                            ];
+                        });
                         
                         doc.autoTable({
                             startY: currentY + 5,
-                            head: [['ID', 'Installer', 'Customer', 'Contact', 'Date', 'Service', 'Status']],
+                            head: [['ID', 'Installer', 'Customer', 'Contact', 'Date', 'Service', 'Product', 'Status', 'Quantity']],
                             body: installData,
                             theme: 'grid',
                             headStyles: { fillColor: [52, 73, 94], textColor: 255 },
@@ -1036,7 +1058,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             columnStyles: {
                                 0: { halign: 'center', cellWidth: 15 },
                                 4: { halign: 'center' },
-                                6: { halign: 'center' }
+                                7: { halign: 'center' },
+                                8: { halign: 'center', cellWidth: 20 }
                             }
                         });
                     }
@@ -1258,7 +1281,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             
             if (dataToShow.length === 0) {
                 const noDataRow = document.createElement('tr');
-                noDataRow.innerHTML = '<td colspan="12" class="text-center">No data found</td>';
+                noDataRow.innerHTML = '<td colspan="13" class="text-center">No data found</td>';
                 tableBody.appendChild(noDataRow);
             } else {
                 dataToShow.forEach(item => {
@@ -1573,7 +1596,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
             const tbody = document.getElementById('completedSchedulesTableBody');
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="text-center">
+                    <td colspan="13" class="text-center">
                         <div class="spinner-border text-primary" role="status">
                             <span class="visually-hidden">Loading...</span>
                         </div>
@@ -1591,7 +1614,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 .then(response => response.json())
                 .then(data => {
                     if (data.error) {
-                        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error: ${data.error}</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="13" class="text-center text-danger">Error: ${data.error}</td></tr>`;
                         return;
                     }
                     
@@ -1599,7 +1622,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     document.getElementById('totalCompletedCount').textContent = data.total || 0;
                     
                     if (currentCompletedSchedules.length === 0) {
-                        tbody.innerHTML = `<tr><td colspan="11" class="text-center text-muted">No schedules found for this installer.</td></tr>`;
+                        tbody.innerHTML = `<tr><td colspan="13" class="text-center text-muted">No schedules found for this installer.</td></tr>`;
                         return;
                     }
                     
@@ -1641,6 +1664,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             ? escapeHtml(schedule.cancel_note.length > 50 ? schedule.cancel_note.substring(0, 50) + '...' : schedule.cancel_note)
                             : (status === 'Cancelled' ? '<span class="text-muted">No note</span>' : 'N/A');
                         
+                        const productDisplay = schedule.product_name || schedule.products_to_install || 'N/A';
                         row.innerHTML = `
                             <td>${schedule.id}</td>
                             <td>${escapeHtml(schedule.customer_name)}</td>
@@ -1649,7 +1673,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             <td>${formatDate(scheduleDate)}</td>
                             <td>${scheduleTime}</td>
                             <td>${escapeHtml(schedule.service_type || 'N/A')}</td>
-                            <td>${escapeHtml(schedule.products_to_install ? (schedule.products_to_install.length > 30 ? schedule.products_to_install.substring(0, 30) + '...' : schedule.products_to_install) : 'N/A')}</td>
+                            <td>${escapeHtml(productDisplay.length > 30 ? productDisplay.substring(0, 30) + '...' : productDisplay)}</td>
+                            <td>${schedule.quantity_to_install || '1'}</td>
                             <td>${escapeHtml(schedule.notes ? (schedule.notes.length > 30 ? schedule.notes.substring(0, 30) + '...' : schedule.notes) : 'N/A')}</td>
                             <td>${statusBadge}</td>
                             <td>${cancelNote}</td>
@@ -1660,7 +1685,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    tbody.innerHTML = `<tr><td colspan="11" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="13" class="text-center text-danger">Error loading data: ${error.message}</td></tr>`;
                 });
         }
 
@@ -1747,6 +1772,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             ? (schedule.cancel_note.length > 40 ? schedule.cancel_note.substring(0, 40) + '...' : schedule.cancel_note)
                             : (status === 'Cancelled' ? 'No note' : 'N/A');
                         
+                        const productDisplay = schedule.product_name || schedule.products_to_install || 'N/A';
                         return [
                             schedule.id.toString(),
                             schedule.customer_name || 'N/A',
@@ -1755,7 +1781,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             formatDate(scheduleDate),
                             scheduleTime,
                             schedule.service_type || 'N/A',
-                            schedule.products_to_install ? (schedule.products_to_install.length > 25 ? schedule.products_to_install.substring(0, 25) + '...' : schedule.products_to_install) : 'N/A',
+                            productDisplay.length > 25 ? productDisplay.substring(0, 25) + '...' : productDisplay,
+                            schedule.quantity_to_install || '1',
                             status,
                             cancelNote,
                             formatDate(completedAt)
@@ -1764,7 +1791,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     doc.autoTable({
                         startY: 50,
-                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Status', 'Cancel Note', 'Completed Date']],
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Quantity', 'Status', 'Cancel Note', 'Completed Date']],
                         body: tableData,
                         theme: 'grid',
                         headStyles: { fillColor: [155, 89, 182], textColor: 255 },
@@ -1773,8 +1800,9 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             0: { halign: 'center', cellWidth: 12 },
                             4: { halign: 'center' },
                             5: { halign: 'center' },
-                            8: { halign: 'center' },
-                            10: { halign: 'center' }
+                            8: { halign: 'center', cellWidth: 15 },
+                            9: { halign: 'center' },
+                            11: { halign: 'center' }
                         },
                         margin: { top: 50 }
                     });
@@ -1840,6 +1868,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             ? (schedule.cancel_note.length > 40 ? schedule.cancel_note.substring(0, 40) + '...' : schedule.cancel_note)
                             : (status === 'Cancelled' ? 'No note' : 'N/A');
                         
+                        const productDisplay = schedule.product_name || schedule.products_to_install || 'N/A';
                         return [
                             schedule.id.toString(),
                             schedule.customer_name || 'N/A',
@@ -1848,7 +1877,8 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             formatDate(scheduleDate),
                             scheduleTime,
                             schedule.service_type || 'N/A',
-                            schedule.products_to_install ? (schedule.products_to_install.length > 25 ? schedule.products_to_install.substring(0, 25) + '...' : schedule.products_to_install) : 'N/A',
+                            productDisplay.length > 25 ? productDisplay.substring(0, 25) + '...' : productDisplay,
+                            schedule.quantity_to_install || '1',
                             status,
                             cancelNote,
                             formatDate(completedAt)
@@ -1857,7 +1887,7 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                     
                     doc.autoTable({
                         startY: 50,
-                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Status', 'Cancel Note', 'Completed Date']],
+                        head: [['ID', 'Customer', 'Contact', 'Address', 'Schedule Date', 'Time', 'Service Type', 'Products', 'Quantity', 'Status', 'Cancel Note', 'Completed Date']],
                         body: tableData,
                         theme: 'grid',
                         headStyles: { fillColor: [155, 89, 182], textColor: 255 },
@@ -1866,8 +1896,9 @@ $chart_data = $result->fetch_all(MYSQLI_ASSOC);
                             0: { halign: 'center', cellWidth: 12 },
                             4: { halign: 'center' },
                             5: { halign: 'center' },
-                            8: { halign: 'center' },
-                            10: { halign: 'center' }
+                            8: { halign: 'center', cellWidth: 15 },
+                            9: { halign: 'center' },
+                            11: { halign: 'center' }
                         },
                         margin: { top: 50 }
                     });
