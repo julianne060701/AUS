@@ -80,6 +80,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </li>
 
+    <!-- Borrow Management -->
+    <li class="nav-item <?= ($currentPage == 'admin_borrow_management.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../borrow/admin_borrow_management.php">
+            <i class="fas fa-fw fa-hand-holding"></i>
+            <span>Borrow Management</span>
+        </a>
+    </li>
+
       <!-- Reports Dropdown -->
       <li class="nav-item">
         <a class="nav-link collapsed" href="#" data-toggle="collapse" data-target="#collapseReports" aria-expanded="true" aria-controls="collapseReports">

@@ -20,6 +20,11 @@ $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $user_result = $stmt->get_result();
 $user = $user_result->fetch_assoc();
+
+// Ensure full_name is available in session for other components
+if (!empty($user['full_name'])) {
+    $_SESSION['full_name'] = $user['full_name'];
+}
 ?>
  
 <!-- Content Wrapper -->

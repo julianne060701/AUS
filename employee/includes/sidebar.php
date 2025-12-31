@@ -48,6 +48,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         </a>
     </li>
 
+    <!-- Borrow Equipment/Items -->
+    <li class="nav-item <?= ($currentPage == 'employee_borrow.php') ? 'active' : '' ?>">
+        <a class="nav-link" href="../borrow/employee_borrow.php">
+            <i class="fas fa-fw fa-hand-holding"></i>
+            <span>Borrow Equipment/Items</span>
+        </a>
+    </li>
+
     <!-- Divider -->
     <hr class="sidebar-divider d-none d-md-block">
 

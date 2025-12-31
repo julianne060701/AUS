@@ -139,6 +139,7 @@ include '../config/conn.php';
                         <th>Category</th>
                         <th>Stock</th>
                         <th>Date</th>
+                        <th>Updated</th>
                         <th>Action</th>
                     </tr>
                 </thead>
@@ -174,8 +175,9 @@ include '../config/conn.php';
                             <td>" . htmlspecialchars($row['category_name']) . "</td>
                             <td class='" . $stockClass . "'>" . $row['quantity'] . "</td>
                             <td>" . $createdDate . "</td>
+                            <td>" . (!empty($row['updated_at']) ? date("M d, Y h:i A", strtotime($row['updated_at'])) : '—') . "</td>
                             <td>
-                                <button class='btn btn-sm btn-warning edit-btn' 
+                                <button class='btn btn-sm btn-warning edit-btn me-1' 
                                         data-id='" . $row['id'] . "'
                                         data-name='" . htmlspecialchars($row['product_name']) . "'
                                         data-serial='" . htmlspecialchars($row['serial_number']) . "'
@@ -186,14 +188,25 @@ include '../config/conn.php';
                                         data-category-id='" . $row['category_id'] . "'
                                         data-brand-id='" . $row['brand_id'] . "'
                                         data-bs-toggle='modal' 
-                                        data-bs-target='#editProductModal'>
+                                        data-bs-target='#editProductModal'
+                                        title='Edit' data-bs-toggle='tooltip'>
                                     <i class='fas fa-edit'></i>
+                                </button>
+                                <button class='btn btn-sm btn-info reorder-btn me-1' 
+                                        data-id='" . $row['id'] . "'
+                                        data-name='" . htmlspecialchars($row['product_name']) . "'
+                                        data-current-qty='" . $row['quantity'] . "'
+                                        data-bs-toggle='modal' 
+                                        data-bs-target='#reorderProductModal'
+                                        title='Reorder' data-bs-toggle='tooltip'>
+                                    <i class='fas fa-shopping-basket'></i>
                                 </button>
                                 <button class='btn btn-sm btn-danger delete-btn' 
                                         data-id='" . $row['id'] . "'
                                         data-name='" . htmlspecialchars($row['product_name']) . "'
                                         data-bs-toggle='modal' 
-                                        data-bs-target='#deleteProductModal'>
+                                        data-bs-target='#deleteProductModal'
+                                        title='Delete' data-bs-toggle='tooltip'>
                                     <i class='fas fa-trash'></i>
                                 </button>
                             </td>
@@ -225,23 +238,24 @@ include '../config/conn.php';
      <!-- Add Product Modal -->
      <div class="modal fade" id="addProductModal" tabindex="-1" aria-labelledby="addProductModalLabel" aria-hidden="true">
       <div class="modal-dialog modal-lg">
-        <form action="add_products.php" method="POST" class="modal-content">
+        <form id="employeeAddProductForm" action="add_products.php" method="POST" class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="addProductModalLabel">Add Product</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
+            
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Product Name <span class="text-danger">*</span></label>
-                  <input type="text" name="product_name" class="form-control" required>
+                  <input type="text" id="ap_product_name" name="product_name" class="form-control" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Serial Number</label>
-                  <input type="text" name="serial_number" class="form-control" placeholder="e.g. SN123456 (Optional)">
+                  <input type="text" id="ap_serial_number" name="serial_number" class="form-control" placeholder="e.g. SN123456 (Optional)">
                   <small class="text-muted">Leave blank if not applicable</small>
                 </div>
               </div>
@@ -250,7 +264,7 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Brand</label>
-                  <select name="brand_id" class="form-select">
+                  <select id="ap_brand_id" name="brand_id" class="form-select">
                     <option value="">-- Select Brand (Optional) --</option>
                     <?php
                     $brandRes = $conn->query("SELECT * FROM brands ORDER BY brand_name");
@@ -264,7 +278,7 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Capacity <span class="text-danger">*</span></label>
-                  <input type="text" name="capacity" class="form-control" placeholder="e.g. 1.5L or 4.0/3tr" required>
+                  <input type="text" id="ap_capacity" name="capacity" class="form-control" placeholder="e.g. 1.5L or 4.0/3tr" required>
                 </div>
               </div>
             </div>
@@ -272,13 +286,13 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Buying Price <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" name="buying_price" class="form-control" placeholder="0.00" required>
+                  <input type="number" step="0.01" id="ap_buying_price" name="buying_price" class="form-control" placeholder="0.00" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Selling Price (SRP) <span class="text-danger">*</span></label>
-                  <input type="number" step="0.01" name="selling_price" class="form-control" placeholder="0.00" required>
+                  <input type="number" step="0.01" id="ap_selling_price" name="selling_price" class="form-control" placeholder="0.00" required>
                 </div>
               </div>
             </div>
@@ -286,13 +300,13 @@ include '../config/conn.php';
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Quantity <span class="text-danger">*</span></label>
-                  <input type="number" name="quantity" class="form-control" min="0" required>
+                  <input type="number" id="ap_quantity" name="quantity" class="form-control" min="0" required>
                 </div>
               </div>
               <div class="col-md-6">
                 <div class="mb-3">
                   <label class="form-label">Category <span class="text-danger">*</span></label>
-                  <select name="category_id" class="form-select" required>
+                  <select id="ap_category_id" name="category_id" class="form-select" required>
                     <option value="">-- Select Category --</option>
                     <?php
                     $catRes = $conn->query("SELECT * FROM category ORDER BY category_name");
@@ -301,6 +315,15 @@ include '../config/conn.php';
                     }
                     ?>
                   </select>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label class="form-label">Reorder</label>
+                  <input type="text" id="add_reorder_text" class="form-control" placeholder="">
                 </div>
               </div>
             </div>
@@ -428,6 +451,38 @@ include '../config/conn.php';
       </div>
     </div>
 
+    <!-- Reorder Product Modal -->
+    <div class="modal fade" id="reorderProductModal" tabindex="-1" aria-labelledby="reorderProductModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <form action="reorder_product.php" method="POST" class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="reorderProductModalLabel">Reorder Product</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body">
+            <input type="hidden" id="reorder_product_id" name="product_id">
+            <div class="mb-2">
+                <label class="form-label">Product</label>
+                <input type="text" id="reorder_product_name" class="form-control" readonly>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Current Stock</label>
+                <input type="number" id="reorder_current_qty" class="form-control" readonly>
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Add Quantity <span class="text-danger">*</span></label>
+                <input type="number" name="add_quantity" id="reorder_add_qty" class="form-control" min="1" required>
+                <small class="text-muted">Enter how many units to add to stock.</small>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-success"><i class="fas fa-save"></i> Apply</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Scripts -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
@@ -447,29 +502,29 @@ $(document).ready(function () {
         "ordering": true,
         "searching": true,
         "responsive": true,
-        "order": [[5, 'asc'], [2, 'asc'], [0, 'asc']], // Sort by category, brand, product name
+        "order": [[8, 'desc'], [7, 'desc']], // Latest updated first, then latest created
         "columnDefs": [
             { "orderable": false, "targets": -1 } // Disable sorting on Action column
         ]
     });
 
-    // Category filter functionality
+    // Category filter functionality (Category is column index 5)
     $('#categoryFilter').on('change', function() {
         var selectedCategory = $(this).val();
         
         if (selectedCategory === '') {
-            table.column(5).search('').draw(); // Column 5 is Category
+            table.column(5).search('').draw();
         } else {
             table.column(5).search('^' + selectedCategory + '$', true, false).draw();
         }
     });
 
-    // Brand filter functionality
+    // Brand filter functionality (Brand is column index 2)
     $('#brandFilter').on('change', function() {
         var selectedBrand = $(this).val();
         
         if (selectedBrand === '') {
-            table.column(2).search('').draw(); // Column 2 is Brand
+            table.column(2).search('').draw();
         } else {
             table.column(2).search(selectedBrand, true, false).draw();
         }
@@ -480,6 +535,7 @@ $(document).ready(function () {
         $('#categoryFilter').val('');
         $('#brandFilter').val('');
         table.columns().search('').draw();
+        table.order([[8, 'desc'], [7, 'desc']]).draw(); // restore latest-first
     });
 
     // Edit button click handler
@@ -515,6 +571,131 @@ $(document).ready(function () {
         $('#delete_product_id').val(id);
         $('#delete_product_name').text(name);
     });
+
+    // Reorder button click handler
+    $(document).on('click', '.reorder-btn', function() {
+        var id = $(this).data('id');
+        var name = $(this).data('name');
+        var currentQty = $(this).data('current-qty');
+
+        $('#reorder_product_id').val(id);
+        $('#reorder_product_name').val(name);
+        $('#reorder_current_qty').val(currentQty);
+        $('#reorder_add_qty').val('');
+    });
+
+    // Reset Reorder modal on hide
+    var reorderModalEl = document.getElementById('reorderProductModal');
+    if (reorderModalEl) {
+        reorderModalEl.addEventListener('hidden.bs.modal', function () {
+            $('#reorder_product_id').val('');
+            $('#reorder_product_name').val('');
+            $('#reorder_current_qty').val('');
+            $('#reorder_add_qty').val('');
+        });
+    }
+
+    // Enable Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle=\"tooltip\"]'));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Improve search input placeholder
+    var dtFilter = $('#dataTable_filter input[type=\"search\"]');
+    if (dtFilter.length) {
+        dtFilter.attr('placeholder', 'Search products...');
+    }
+
+    // Add Product modal: toggle between New vs Reorder based on existing product dropdown
+    function setReorderMode(enabled) {
+        var form = $('#employeeAddProductForm');
+        if (enabled) {
+            // Switch to reorder handler
+            form.attr('action', 'reorder_product.php');
+            // Show reorder row and require add_quantity
+            $('#ap_reorder_row').removeClass('d-none');
+            $('#ap_add_quantity').attr('required', true);
+            // Make detail fields readonly/disabled
+            $('#ap_product_name, #ap_serial_number, #ap_capacity, #ap_buying_price, #ap_selling_price').attr('readonly', true);
+            $('#ap_brand_id, #ap_category_id').attr('disabled', true);
+            // Hide/disable normal quantity input
+            $('#ap_quantity').attr('disabled', true).attr('required', false);
+        } else {
+            // Switch back to add handler
+            form.attr('action', 'add_products.php');
+            // Hide reorder row and remove required from add_quantity
+            $('#ap_reorder_row').addClass('d-none');
+            $('#ap_add_quantity').removeAttr('required').val('');
+            $('#ap_current_qty').val('');
+            // Make detail fields editable
+            $('#ap_product_name, #ap_serial_number, #ap_capacity, #ap_buying_price, #ap_selling_price').attr('readonly', false);
+            $('#ap_brand_id, #ap_category_id').attr('disabled', false);
+            // Show/enable normal quantity input
+            $('#ap_quantity').attr('disabled', false).attr('required', true);
+        }
+    }
+
+    // Reset Add Product modal on hide
+    var addProductModalEl = document.getElementById('addProductModal');
+    if (addProductModalEl) {
+        addProductModalEl.addEventListener('show.bs.modal', function () {
+            $('#add_reorder_text').val('');
+        });
+        addProductModalEl.addEventListener('hidden.bs.modal', function () {
+            $('#existing_product_select').val('');
+            $('#existing_product_id').val('');
+            setReorderMode(false);
+            // Clear fields
+            $('#ap_product_name').val('');
+            $('#ap_serial_number').val('');
+            $('#ap_capacity').val('');
+            $('#ap_buying_price').val('');
+            $('#ap_selling_price').val('');
+            $('#ap_quantity').val('');
+            $('#ap_brand_id').val('');
+            $('#ap_category_id').val('');
+            $('#add_reorder_text').val('');
+        });
+    }
+
+    // When selecting an existing product, fetch and lock details
+    $('#existing_product_select').on('change', function () {
+        var productId = $(this).val();
+        if (!productId) {
+            $('#existing_product_id').val('');
+            setReorderMode(false);
+            return;
+        }
+        $('#existing_product_id').val(productId);
+        setReorderMode(true);
+        $.ajax({
+            url: '../products/get_product_details.php',
+            type: 'GET',
+            data: { id: productId },
+            dataType: 'json',
+            success: function(resp) {
+                if (resp && resp.success && resp.product) {
+                    var p = resp.product;
+                    $('#ap_product_name').val(p.product_name || '');
+                    $('#ap_serial_number').val(p.serial_number || '');
+                    $('#ap_capacity').val(p.capacity || '');
+                    $('#ap_buying_price').val(p.buying_price || '');
+                    $('#ap_selling_price').val(p.selling_price || '');
+                    $('#ap_brand_id').val(p.brand_id || '');
+                    $('#ap_category_id').val(p.category_id || '');
+                    $('#ap_current_qty').val(p.quantity || '');
+                } else {
+                    alert('Could not load product details.');
+                }
+            },
+            error: function() {
+                alert('Failed to load product details.');
+            }
+        });
+    });
+
+    // Removed dropdown-driven loader for the Reorder modal (reverted)
 
     // Auto-dismiss alerts after 5 seconds
     setTimeout(function() {

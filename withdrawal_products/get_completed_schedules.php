@@ -54,13 +54,18 @@ switch($filter) {
 }
 
 $query = "SELECT 
-    id, installer_name, customer_name, contact_number, address, 
-    schedule_date, schedule_time, service_type, products_to_install, 
-    notes, status, cancel_note, completed_at, created_at
-FROM installer_schedules 
-WHERE installer_name = ? AND (status = 'Completed' OR status = 'Cancelled') 
+    sched.id, sched.installer_name, sched.customer_name, sched.contact_number, sched.address, 
+    sched.schedule_date, sched.schedule_time, sched.service_type, sched.products_to_install, sched.quantity_to_install,
+    sched.notes, sched.status, sched.cancel_note, sched.completed_at, sched.created_at,
+    COALESCE(p.product_name, sched.products_to_install) as product_name
+FROM installer_schedules sched
+LEFT JOIN products p ON sched.products_to_install IS NOT NULL 
+    AND sched.products_to_install != '' 
+    AND sched.products_to_install REGEXP '^[0-9]+$' 
+    AND CAST(sched.products_to_install AS UNSIGNED) = p.id
+WHERE sched.installer_name = ? AND (sched.status = 'Completed' OR sched.status = 'Cancelled') 
 $date_condition
-ORDER BY completed_at DESC, schedule_date DESC";
+ORDER BY sched.completed_at DESC, sched.schedule_date DESC";
 
 $stmt = $conn->prepare($query);
 if (!$stmt) {
@@ -85,6 +90,8 @@ while ($row = $result->fetch_assoc()) {
         'schedule_time' => $row['schedule_time'],
         'service_type' => $row['service_type'],
         'products_to_install' => $row['products_to_install'],
+        'product_name' => $row['product_name'],
+        'quantity_to_install' => $row['quantity_to_install'],
         'notes' => $row['notes'],
         'status' => $row['status'],
         'cancel_note' => $row['cancel_note'],

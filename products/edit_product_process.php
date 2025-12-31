@@ -54,7 +54,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                                buying_price = ?, 
                                selling_price = ?, 
                                quantity = ?, 
-                               category_id = ? 
+                               category_id = ?, 
+                               updated_at = NOW() 
                            WHERE id = ?");
     
     $stmt->bind_param("ssissdiii", 
