@@ -40,7 +40,11 @@ session_start();
 require_once '../config/conn.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+<<<<<<< HEAD
 	header('Location: product.php');
+=======
+	header('Location: inventory.php');
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
 	exit();
 }
 
@@ -49,7 +53,11 @@ $addQuantity = isset($_POST['add_quantity']) ? intval($_POST['add_quantity']) : 
 
 if ($productId <= 0 || $addQuantity <= 0) {
 	$_SESSION['error'] = 'Invalid product or quantity.';
+<<<<<<< HEAD
 	header('Location: product.php');
+=======
+	header('Location: inventory.php');
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
 	exit();
 }
 
@@ -70,7 +78,11 @@ if ($stmt->execute()) {
 $stmt->close();
 $conn->close();
 
+<<<<<<< HEAD
 header('Location: product.php');
+=======
+header('Location: inventory.php');
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
 exit();
 ?>
 

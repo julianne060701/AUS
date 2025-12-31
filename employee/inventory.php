@@ -244,7 +244,37 @@ include '../config/conn.php';
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
           <div class="modal-body">
+<<<<<<< HEAD
             
+=======
+            <input type="hidden" id="existing_product_id" name="product_id" value="">
+            <div class="row">
+              <div class="col-md-12">
+                <div class="mb-3">
+                  <label class="form-label">Select Existing Product (to reorder)</label>
+                  <select id="existing_product_select" class="form-select">
+                    <option value="">-- New Product --</option>
+                    <?php
+                    $allProductsRes = $conn->query("
+                      SELECT p.id, p.product_name, b.brand_name, c.category_name
+                      FROM products p
+                      LEFT JOIN brands b ON p.brand_id = b.brand_id
+                      LEFT JOIN category c ON p.category_id = c.category_id
+                      ORDER BY p.product_name ASC
+                    ");
+                    while ($p = $allProductsRes->fetch_assoc()) {
+                      $label = htmlspecialchars($p['product_name']);
+                      if (!empty($p['brand_name'])) $label .= ' — ' . htmlspecialchars($p['brand_name']);
+                      if (!empty($p['category_name'])) $label .= ' (' . htmlspecialchars($p['category_name']) . ')';
+                      echo "<option value='" . $p['id'] . "'>" . $label . "</option>";
+                    }
+                    ?>
+                  </select>
+                  <small class="text-muted">Choose a product to reorder; details will auto-fill and become read-only.</small>
+                </div>
+              </div>
+            </div>
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
             <div class="row">
               <div class="col-md-6">
                 <div class="mb-3">
@@ -318,12 +348,26 @@ include '../config/conn.php';
                 </div>
               </div>
             </div>
+<<<<<<< HEAD
             
             <div class="row">
               <div class="col-md-12">
                 <div class="mb-3">
                   <label class="form-label">Reorder</label>
                   <input type="text" id="add_reorder_text" class="form-control" placeholder="">
+=======
+            <div class="row d-none" id="ap_reorder_row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Add Quantity (Reorder) <span class="text-danger">*</span></label>
+                  <input type="number" id="ap_add_quantity" name="add_quantity" class="form-control" min="1">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Current Stock</label>
+                  <input type="number" id="ap_current_qty" class="form-control" readonly>
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
                 </div>
               </div>
             </div>
@@ -639,9 +683,12 @@ $(document).ready(function () {
     // Reset Add Product modal on hide
     var addProductModalEl = document.getElementById('addProductModal');
     if (addProductModalEl) {
+<<<<<<< HEAD
         addProductModalEl.addEventListener('show.bs.modal', function () {
             $('#add_reorder_text').val('');
         });
+=======
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
         addProductModalEl.addEventListener('hidden.bs.modal', function () {
             $('#existing_product_select').val('');
             $('#existing_product_id').val('');
@@ -655,7 +702,10 @@ $(document).ready(function () {
             $('#ap_quantity').val('');
             $('#ap_brand_id').val('');
             $('#ap_category_id').val('');
+<<<<<<< HEAD
             $('#add_reorder_text').val('');
+=======
+>>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
         });
     }
 
