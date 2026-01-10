@@ -4,14 +4,14 @@ include '../config/conn.php';
 
 header('Content-Type: application/json');
 
-// Check if user is logged in and is an employee
-if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'employee') {
+// Check if user is logged in and is an employee or installer
+if (!isset($_SESSION['user_id']) || ($_SESSION['role'] != 'employee' && $_SESSION['role'] != 'installer')) {
     echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
     exit();
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-    $employee_id = $_SESSION['user_id'];
+    $employee_id = $_SESSION['user_id']; // This variable name is kept for database compatibility (employee_id column)
     $item_name = !empty($_POST['item_name']) ? trim(mysqli_real_escape_string($conn, $_POST['item_name'])) : null;
     $quantity = intval($_POST['quantity']);
     $expected_return_date = !empty($_POST['expected_return_date']) ? $_POST['expected_return_date'] : null;

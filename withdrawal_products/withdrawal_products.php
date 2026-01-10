@@ -326,11 +326,7 @@ $sales_result = $conn->query($sales_query);
                             <input type="text" class="form-control" name="cashier_name" id="cashier_name"
                                 value="<?php
 									echo !empty($_SESSION['full_name']) ? htmlspecialchars($_SESSION['full_name']) : '';
-<<<<<<< HEAD
-								?>">
-=======
 								?>" required readonly>
->>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
                         </div>
                     </div>
 

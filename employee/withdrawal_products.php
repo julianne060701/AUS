@@ -327,15 +327,8 @@ $sales_result = $conn->query($sales_query);
                                 value="<?php
                                     if (!empty($_SESSION['full_name'])) {
                                         echo htmlspecialchars($_SESSION['full_name']);
-<<<<<<< HEAD
                                     } 
                                 ?>" readonly="">
-=======
-                                    } elseif (!empty($_SESSION['full_name'])) {
-                                        echo htmlspecialchars($_SESSION['full_name']);
-                                    }
-								?>" required readonly>
->>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
                         </div>
                     </div>
 

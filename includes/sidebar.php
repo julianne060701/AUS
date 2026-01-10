@@ -105,6 +105,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <i class="fas fa-fw fa-tools"></i>
                     Installation Report
                 </a>
+                <a class="collapse-item <?= ($currentPage == 'borrow_report.php') ? 'active' : '' ?>" href="../borrow/borrow_report.php">
+                    <i class="fas fa-fw fa-hand-holding"></i>
+                    Borrow Report
+                </a>
             </div>
         </div>
     </li>
