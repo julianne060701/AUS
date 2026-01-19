@@ -61,24 +61,24 @@ include '../config/conn.php';
                         </div>
                     </div>
 
-                    <!-- Success/Error Messages -->
+            <!-- Success/Error Messages -->
 <?php if (isset($_SESSION['success'])): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
+    <div class="alert alert-success alert-dismissible fade show auto-dismiss" role="alert">
         <?php 
         echo $_SESSION['success']; 
         unset($_SESSION['success']);
         ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
 
 <?php if (isset($_SESSION['error'])): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <div class="alert alert-danger alert-dismissible fade show auto-dismiss" role="alert">
         <?php 
         echo $_SESSION['error']; 
         unset($_SESSION['error']);
         ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
 <?php endif; ?>
 
@@ -193,8 +193,8 @@ include '../config/conn.php';
                                                             data-category-id='" . $row['category_id'] . "'
                                                             data-brand-id='" . $row['brand_id'] . "'
                                                             data-bs-toggle='modal' 
-                                                             data-bs-target='#editProductModal'
-                                                             title='Edit' data-bs-toggle='tooltip'>
+                                                            data-bs-target='#editProductModal'
+                                                            title='Edit'>
                                                         <i class='fas fa-edit'></i>
                                                     </button>
                                                      <button class='btn btn-sm btn-info reorder-btn me-1' 
@@ -202,17 +202,9 @@ include '../config/conn.php';
                                                             data-name='" . htmlspecialchars($row['product_name']) . "'
                                                             data-current-qty='" . $row['quantity'] . "'
                                                             data-bs-toggle='modal' 
-                                                             data-bs-target='#reorderProductModal'
-                                                             title='Reorder' data-bs-toggle='tooltip'>
+                                                            data-bs-target='#reorderProductModal'
+                                                            title='Reorder'>
                                                         <i class='fas fa-shopping-basket'></i> 
-                                                    </button>
-                                                    <button class='btn btn-sm btn-danger delete-btn' 
-                                                            data-id='" . $row['id'] . "'
-                                                            data-name='" . htmlspecialchars($row['product_name']) . "'
-                                                            data-bs-toggle='modal' 
-                                                             data-bs-target='#deleteProductModal'
-                                                             title='Delete' data-bs-toggle='tooltip'>
-                                                        <i class='fas fa-trash'></i>
                                                     </button>
                                                 </td>
                                               </tr>";
@@ -453,13 +445,6 @@ include '../config/conn.php';
                 </div>
               </div>
             </div>
-<<<<<<< HEAD
-            <div class="row">
-              <div class="col-md-12">
-                <div class="mb-3">
-                  <label class="form-label">Reorder</label>
-                  <input type="text" id="add_reorder_text" class="form-control" placeholder="">
-=======
             <div class="row d-none" id="main_reorder_row">
               <div class="col-md-6">
                 <div class="mb-3">
@@ -471,7 +456,6 @@ include '../config/conn.php';
                 <div class="mb-3">
                   <label class="form-label">Current Stock</label>
                   <input type="number" id="main_current_qty" class="form-control" readonly>
->>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
                 </div>
               </div>
             </div>
@@ -626,8 +610,6 @@ include '../config/conn.php';
             ]
         });
 
-<<<<<<< HEAD
-=======
         // Add Product modal: toggle between New vs Reorder based on existing product dropdown
         function setMainReorderMode(enabled) {
             var form = $('#mainAddProductForm');
@@ -648,6 +630,14 @@ include '../config/conn.php';
                 $('#main_quantity').attr('disabled', false).attr('required', true);
             }
         }
+
+        // Auto-dismiss success/error alerts after a short delay
+        setTimeout(function() {
+            document.querySelectorAll('.auto-dismiss').forEach(function(el) {
+                var alertInstance = bootstrap.Alert.getOrCreateInstance(el);
+                alertInstance.close();
+            });
+        }, 3500);
 
         // Reset modal on hide
         var mainAddModalEl = document.getElementById('addProductModal');
@@ -702,7 +692,6 @@ include '../config/conn.php';
                 }
             });
         });
->>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
         // Category filter functionality (Category is column index 5)
         $('#categoryFilter').on('change', function() {
             var selectedCategory = $(this).val();
@@ -802,20 +791,6 @@ include '../config/conn.php';
              dtFilter.attr('placeholder', 'Search products...');
          }
 
-<<<<<<< HEAD
-        // Reset Add Product modal custom non-persistent field
-        var addProductModalEl = document.getElementById('addProductModal');
-        if (addProductModalEl) {
-            addProductModalEl.addEventListener('show.bs.modal', function () {
-                $('#add_reorder_text').val('');
-            });
-            addProductModalEl.addEventListener('hidden.bs.modal', function () {
-                $('#add_reorder_text').val('');
-            });
-        }
-
-=======
->>>>>>> 985a575a75e4576f95d48902b1ff5de11fc4c8f5
         // Add brand form handler
         $('#addBrandForm').on('submit', function(e) {
             e.preventDefault();
